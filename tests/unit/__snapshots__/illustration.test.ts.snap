@@ -1,0 +1,9 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ゴールデン: 手描き風パイプラインの回帰検証 > auto-kmeans/8色/アウトラインあり 1`] = `"64x48:7ad60a65"`;
+
+exports[`ゴールデン: 手描き風パイプラインの回帰検証 > auto-kmeans/16色/コントラスト強化 1`] = `"64x48:6a1e18a5"`;
+
+exports[`ゴールデン: 手描き風パイプラインの回帰検証 > 固定famicom/FSディザ 1`] = `"64x48:404b9a65"`;
+
+exports[`ゴールデン: 手描き風パイプラインの回帰検証 > 彩度75%/アウトラインなし 1`] = `"64x48:34298f25"`;

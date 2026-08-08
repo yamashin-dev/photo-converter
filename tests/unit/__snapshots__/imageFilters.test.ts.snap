@@ -1,0 +1,7 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ゴールデン: フィルタの回帰検証 > bilateral 9/75/75 1`] = `"32x32:71eb0495"`;
+
+exports[`ゴールデン: フィルタの回帰検証 > gaussian 9x9 1`] = `"32x32:57686807"`;
+
+exports[`ゴールデン: フィルタの回帰検証 > median 5 1`] = `"32x32:ff924c45"`;

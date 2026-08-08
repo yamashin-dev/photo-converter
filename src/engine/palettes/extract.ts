@@ -1,6 +1,7 @@
 import type { RGB, Palette, ExtractMethod } from "../types";
 import type { ImageBuffer } from "../image";
 import { colorDistanceSq } from "../color";
+import { extractKMeans } from "./kmeans";
 
 /**
  * 自動パレット抽出（旧convert.php:230-575 から移植）。
@@ -194,7 +195,8 @@ export function extractLuminance(image: ImageBuffer, numColors: number): Palette
 export function extractPalette(
   image: ImageBuffer,
   numColors: number,
-  method: ExtractMethod
+  method: ExtractMethod,
+  seed = 42
 ): Palette {
   // methodは実行時データ（保存設定等）として型定義外の値が来うるため、
   // 旧PHP実装同様に未知の値はデフォルト方式へフォールバックする
@@ -204,8 +206,7 @@ export function extractPalette(
     case "luminance":
       return extractLuminance(image, numColors);
     case "kmeans":
-      // Phase 2（手描き風スタイル移植）で実装。それまではMedianCutで代替
-      return extractMedianCut(image, numColors);
+      return extractKMeans(image, numColors, seed);
     case "mediancut":
     default:
       return extractMedianCut(image, numColors);

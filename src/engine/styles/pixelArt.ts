@@ -1,5 +1,5 @@
 import type { ConversionParams, Palette, PaletteType, ProgressCallback } from "../types";
-import { DEFAULT_SEED, DEFAULT_MAX_DIMENSION, MIN_NUM_COLORS, MAX_NUM_COLORS } from "../types";
+import { DEFAULT_SEED, DEFAULT_MAX_DIMENSION } from "../types";
 import type { ImageBuffer } from "../image";
 import { resizeNearest } from "../image";
 import { FIXED_PALETTES } from "../palettes/fixed";
@@ -9,25 +9,7 @@ import { applySaturationInPlace } from "../filters/saturation";
 import { addOutlineInPlace, addSoftOutlineInPlace } from "../filters/outline";
 import { applyDitheringInPlace } from "../dithering";
 import { createRng } from "../random";
-
-/**
- * パラメータの実行時サニタイズ。
- * paletteType等はpostMessage経由の実行時データ（localStorageの旧設定・
- * バージョン差のUI由来）なので、型定義だけでは守れない。
- * 旧PHP実装のallowlistフォールバック（不正値→デフォルト）を踏襲する。
- */
-function sanitizeParams(params: ConversionParams): ConversionParams {
-  const paletteType: PaletteType =
-    params.paletteType === "auto" || params.paletteType in FIXED_PALETTES
-      ? params.paletteType
-      : "famicom";
-  const numColors = Math.min(
-    MAX_NUM_COLORS,
-    Math.max(MIN_NUM_COLORS, Math.floor(params.numColors) || 16)
-  );
-  const pixelSize = Math.min(32, Math.max(2, Math.floor(params.pixelSize) || 4));
-  return { ...params, paletteType, numColors, pixelSize };
-}
+import { sanitizeParams } from "./sanitize";
 
 /**
  * ドット絵変換パイプライン（pixel-retro / pixel-integer）。
@@ -69,7 +51,7 @@ export function convertPixelArt(
   onProgress?.({ ratio: 0.05, stage: "palette" });
   const palette: Palette =
     params.paletteType === "auto"
-      ? extractPalette(source, params.numColors, params.extractMethod)
+      ? extractPalette(source, params.numColors, params.extractMethod, params.seed ?? DEFAULT_SEED)
       : FIXED_PALETTES[params.paletteType as Exclude<PaletteType, "auto">];
 
   // 2. ピクセルサイズ分の1に縮小（ニアレストでカクカクに）

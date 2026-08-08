@@ -1,6 +1,7 @@
 import type { ConversionParams, ConversionProgress } from "./types";
 import type { ImageBuffer } from "./image";
 import { convertPixelArt } from "./styles/pixelArt";
+import { convertIllustration } from "./styles/illustration";
 
 /**
  * Web Workerエントリポイント。
@@ -46,7 +47,9 @@ self.onmessage = (event: MessageEvent<ConvertRequest>) => {
 
   try {
     const src = toImageBuffer(req);
-    const result = convertPixelArt(src, req.params, (progress) => {
+    const convert =
+      req.params.style === "illustration" ? convertIllustration : convertPixelArt;
+    const result = convert(src, req.params, (progress) => {
       post({ type: "progress", progress });
     });
     // createImageで生成したバッファは常に通常のArrayBuffer（SharedArrayBufferではない）

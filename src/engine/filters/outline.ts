@@ -1,5 +1,6 @@
 import type { ImageBuffer } from "../image";
 import { luma } from "../image";
+import { gaussianBlurChannel } from "./convolution";
 
 /**
  * アウトライン描画（旧convert.php:600-862 から移植）。
@@ -163,6 +164,27 @@ export function addOutlineInPlace(image: ImageBuffer, pixelSize: number): void {
           }
         }
       }
+    }
+  }
+}
+
+/**
+ * DoG（Difference of Gaussians）アウトライン（旧drawing版の柔らかい輪郭線）。
+ * σ1.0(5x5)とσ2.0(7x7)のガウシアン差分の絶対値が閾値10を超える画素を黒にする。
+ */
+export function addDoGOutlineInPlace(image: ImageBuffer): void {
+  const { width, height, data } = image;
+  const gray = toGrayscale(image);
+
+  const blur1 = gaussianBlurChannel(gray, width, height, 5, 1.0);
+  const blur2 = gaussianBlurChannel(gray, width, height, 7, 2.0);
+
+  for (let i = 0; i < gray.length; i++) {
+    if (Math.abs(blur1[i] - blur2[i]) > 10) {
+      const p = i * 4;
+      data[p] = 0;
+      data[p + 1] = 0;
+      data[p + 2] = 0;
     }
   }
 }

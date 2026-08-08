@@ -23,3 +23,4 @@ export { FIXED_PALETTES } from "./palettes/fixed";
 export { extractPalette } from "./palettes/extract";
 
 export { convertPixelArt } from "./styles/pixelArt";
+export { convertIllustration } from "./styles/illustration";
