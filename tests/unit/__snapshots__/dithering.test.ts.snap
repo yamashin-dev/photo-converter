@@ -1,0 +1,17 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ゴールデン: 出力ハッシュの回帰検証 > floyd-steinberg 1`] = `"48x48:18307322"`;
+
+exports[`ゴールデン: 出力ハッシュの回帰検証 > ordered-2x2 1`] = `"48x48:85dcef0"`;
+
+exports[`ゴールデン: 出力ハッシュの回帰検証 > ordered-4x4 1`] = `"48x48:be166361"`;
+
+exports[`ゴールデン: 出力ハッシュの回帰検証 > ordered-8x8 1`] = `"48x48:e8af39bd"`;
+
+exports[`ゴールデン: 出力ハッシュの回帰検証 > patterning-2x2 1`] = `"48x48:b17e00c9"`;
+
+exports[`ゴールデン: 出力ハッシュの回帰検証 > patterning-4x4 1`] = `"48x48:cdd3930"`;
+
+exports[`ゴールデン: 出力ハッシュの回帰検証 > patterning-8x8 1`] = `"48x48:bf8ca691"`;
+
+exports[`ゴールデン: 出力ハッシュの回帰検証 > riemersma 1`] = `"48x48:2617ce94"`;

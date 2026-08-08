@@ -69,7 +69,14 @@ export interface ConversionParams {
   enhanceContrast: boolean;
   /** 影除去（ガンマ補正による平坦化）。手描き風向け */
   removeShadow: boolean;
+  /**
+   * 乱数シード。同じシード + 同じ入力 → 必ず同じ出力（ゴールデンテストの前提）。
+   * 省略時は DEFAULT_SEED。
+   */
+  seed?: number;
 }
+
+export const DEFAULT_SEED = 42;
 
 /** 変換の進捗通知（Workerからメインスレッドへ） */
 export interface ConversionProgress {
@@ -82,8 +89,12 @@ export interface ConversionProgress {
     | "downscale"
     | "palette"
     | "quantize"
+    | "saturate"
     | "outline"
     | "dithering"
     | "upscale"
     | "encode";
 }
+
+/** 進捗通知コールバック */
+export type ProgressCallback = (progress: ConversionProgress) => void;
