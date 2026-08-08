@@ -32,7 +32,6 @@ export function analyzeImageCharacteristics(image: ImageBuffer): ImageCharacteri
 
   let edgeCount = 0;
   let contrastSum = 0;
-  let sampled = 0;
 
   for (let y = 1; y < height - 1; y += sampleRate) {
     for (let x = 1; x < width - 1; x += sampleRate) {
@@ -47,9 +46,14 @@ export function analyzeImageCharacteristics(image: ImageBuffer): ImageCharacteri
       }
       contrastSum += maxDiff;
       if (maxDiff > 20) edgeCount++;
-      sampled++;
     }
   }
+
+  // 分母は旧実装（convert.php:648）と同じ「軸ごとのfloor積」を使う。
+  // 実訪問数はceilベースでこれよりやや多いが、アルゴリズム選択の閾値
+  // （edgeDensity > 0.4 等）が旧実装のこの分母を前提に調整されているため踏襲する
+  const sampled =
+    Math.floor((height - 2) / sampleRate) * Math.floor((width - 2) / sampleRate);
 
   return {
     edgeDensity: sampled > 0 ? edgeCount / sampled : 0,

@@ -22,8 +22,13 @@ export function cloneImage(src: ImageBuffer): ImageBuffer {
 }
 
 /**
- * ニアレストネイバー法でリサイズ（GDのimagecopyresized相当）。
+ * ニアレストネイバー法でリサイズ。
  * 整数倍拡大では完全なブロック複製になり、ドットのエッジが保たれる。
+ *
+ * 意図的差分: 旧GD（imagecopyresized）は非整数倍時に端数を画像全体へ
+ * 分配するため、floor(x*sw/dw) の標準マッピングとはサンプル元が
+ * 1px ずれることがある。視覚上は等価であり、本エンジンのゴールデンテストは
+ * この実装を基準とする（旧PHP出力とのビット一致は目標にしない）。
  */
 export function resizeNearest(src: ImageBuffer, dstWidth: number, dstHeight: number): ImageBuffer {
   const dst = createImage(dstWidth, dstHeight);

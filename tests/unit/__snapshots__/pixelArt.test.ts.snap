@@ -8,4 +8,4 @@ exports[`ゴールデン: パイプライン出力の回帰検証 > retro/famico
 
 exports[`ゴールデン: パイプライン出力の回帰検証 > retro/gameboy/ordered-4x4 1`] = `"64x48:d0c15445"`;
 
-exports[`ゴールデン: パイプライン出力の回帰検証 > retro/grayscale/アウトライン+彩度 1`] = `"64x48:1ea37d05"`;
+exports[`ゴールデン: パイプライン出力の回帰検証 > retro/grayscale/アウトライン+彩度 1`] = `"64x48:dc91445"`;

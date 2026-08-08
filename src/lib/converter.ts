@@ -4,11 +4,19 @@ import type { ConvertRequest, ConvertResponse } from "@/engine/worker";
 /**
  * 変換Workerのメインスレッド側ラッパー。
  * - 実進捗の通知（旧版の偽プログレスバーの置き換え）
- * - cancel() による即時キャンセル（worker.terminate）
+ * - cancel() による即時キャンセル（worker.terminate + promise reject）
  *
  * ImageData はブラウザ環境でのみ存在するため、このモジュールはUI層専用。
  * エンジン本体（src/engine/）はNode上のテストでも動く。
  */
+
+/** キャンセルによる中断。UI側は instanceof でエラー表示をスキップできる */
+export class ConversionCancelledError extends Error {
+  constructor() {
+    super("変換はキャンセルされました");
+    this.name = "ConversionCancelledError";
+  }
+}
 
 export interface ConversionHandle {
   promise: Promise<ImageData>;
@@ -20,10 +28,17 @@ export function startConversion(
   params: ConversionParams,
   onProgress?: (progress: ConversionProgress) => void
 ): ConversionHandle {
-  const worker = new Worker(new URL("../engine/worker.ts", import.meta.url));
+  // worker.ts はESモジュール（import使用）のため type: "module" が必須。
+  // 指定がないとバンドラの出力形態によってはclassic workerとしてロードされ
+  // 「Cannot use import statement outside a module」で全変換が失敗する
+  const worker = new Worker(new URL("../engine/worker.ts", import.meta.url), {
+    type: "module",
+  });
   let settled = false;
+  let rejectFn: ((reason: Error) => void) | null = null;
 
   const promise = new Promise<ImageData>((resolve, reject) => {
+    rejectFn = reject;
     worker.onmessage = (event: MessageEvent<ConvertResponse>) => {
       const msg = event.data;
       if (msg.type === "progress") {
@@ -62,6 +77,7 @@ export function startConversion(
       if (!settled) {
         settled = true;
         worker.terminate();
+        rejectFn?.(new ConversionCancelledError());
       }
     },
   };

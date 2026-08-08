@@ -48,6 +48,54 @@ describe("convertPixelArt: サイズ", () => {
     const src = createGradientImage(8, 8);
     expect(() => convertPixelArt(src, baseParams({ style: "illustration" }))).toThrow();
   });
+
+  it("maxDimension超過時は処理前に縮小される（端末保護）", () => {
+    const src = createGradientImage(200, 100);
+    const out = convertPixelArt(src, baseParams({ maxDimension: 100 }));
+    // 長辺200→100に縮小されるので出力も100x50
+    expect(out.width).toBe(100);
+    expect(out.height).toBe(50);
+  });
+});
+
+describe("convertPixelArt: 実行時データのサニタイズ（旧PHPのフォールバック踏襲）", () => {
+  it("型定義外のpaletteTypeはfamicomにフォールバックしてクラッシュしない", () => {
+    const src = createGradientImage(32, 32);
+    const params = baseParams({ paletteType: "存在しない値" as never });
+    const out = convertPixelArt(src, params);
+    expect(usesOnlyPaletteColors(out, FIXED_PALETTES.famicom)).toBe(true);
+  });
+
+  it("型定義外のextractMethodはmediancutにフォールバックしてクラッシュしない", () => {
+    const src = createGradientImage(32, 32);
+    const params = baseParams({ paletteType: "auto", extractMethod: "不正" as never });
+    expect(() => convertPixelArt(src, params)).not.toThrow();
+  });
+
+  it("numColors=0や負値はクランプされてクラッシュしない", () => {
+    const src = createGradientImage(32, 32);
+    for (const n of [0, -5, 1, 1000, NaN]) {
+      expect(() =>
+        convertPixelArt(src, baseParams({ paletteType: "auto", numColors: n }))
+      ).not.toThrow();
+    }
+  });
+
+  it("outline='soft'はソフト縁取り（auto=黒線とは異なる出力）", () => {
+    const src = createGradientImage(64, 64);
+    const soft = convertPixelArt(src, baseParams({ outline: "soft" }));
+    const auto = convertPixelArt(src, baseParams({ outline: "auto" }));
+    expect(imageHash(soft)).not.toBe(imageHash(auto));
+    // ソフト縁取りの色(50,50,50)がどこかに存在する
+    let hasSoftGray = false;
+    for (let i = 0; i < soft.data.length; i += 4) {
+      if (soft.data[i] === 50 && soft.data[i + 1] === 50 && soft.data[i + 2] === 50) {
+        hasSoftGray = true;
+        break;
+      }
+    }
+    expect(hasSoftGray).toBe(true);
+  });
 });
 
 describe("convertPixelArt: パレット遵守", () => {
@@ -61,6 +109,12 @@ describe("convertPixelArt: パレット遵守", () => {
     const src = createGradientImage(64, 64);
     const out = convertPixelArt(src, baseParams({ dithering: "floyd-steinberg" }));
     expect(usesOnlyPaletteColors(out, FIXED_PALETTES.famicom)).toBe(true);
+  });
+
+  it("彩度変更+ディザなしでもパレット色のみ（レビュー指摘の回帰防止）", () => {
+    const src = createGradientImage(64, 64);
+    const out = convertPixelArt(src, baseParams({ paletteType: "gameboy", saturation: 150 }));
+    expect(usesOnlyPaletteColors(out, FIXED_PALETTES.gameboy)).toBe(true);
   });
 
   it("autoパレット: 抽出色のみで構成される", () => {

@@ -74,9 +74,20 @@ export interface ConversionParams {
    * 省略時は DEFAULT_SEED。
    */
   seed?: number;
+  /**
+   * 処理解像度の上限（長辺px）。超過分は処理前にニアレスト縮小される。
+   * 巨大画像（スマホ48MP等）でのOOM・数分単位の処理を防ぐ端末保護。
+   * 省略時は DEFAULT_MAX_DIMENSION。
+   */
+  maxDimension?: number;
 }
 
 export const DEFAULT_SEED = 42;
+export const DEFAULT_MAX_DIMENSION = 4096;
+
+/** numColors の許容範囲（範囲外はクランプされる） */
+export const MIN_NUM_COLORS = 2;
+export const MAX_NUM_COLORS = 64;
 
 /** 変換の進捗通知（Workerからメインスレッドへ） */
 export interface ConversionProgress {

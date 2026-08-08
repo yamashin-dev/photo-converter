@@ -177,6 +177,9 @@ export function extractLuminance(image: ImageBuffer, numColors: number): Palette
   const histogram = quantizedHistogram(pixels);
   if (histogram.length === 0) return defaultPalette(numColors);
 
+  // 旧実装と同じ二段ソート: まず頻度降順、次に明度昇順（安定ソート）。
+  // これにより同明度の色は高頻度のものが優先される
+  histogram.sort((a, b) => b.count - a.count);
   histogram.sort((a, b) => a.r + a.g + a.b - (b.r + b.g + b.b));
 
   const palette: RGB[] = [];
@@ -193,15 +196,18 @@ export function extractPalette(
   numColors: number,
   method: ExtractMethod
 ): Palette {
+  // methodは実行時データ（保存設定等）として型定義外の値が来うるため、
+  // 旧PHP実装同様に未知の値はデフォルト方式へフォールバックする
   switch (method) {
-    case "mediancut":
-      return extractMedianCut(image, numColors);
     case "popularity":
       return extractPopularity(image, numColors);
     case "luminance":
       return extractLuminance(image, numColors);
     case "kmeans":
       // Phase 2（手描き風スタイル移植）で実装。それまではMedianCutで代替
+      return extractMedianCut(image, numColors);
+    case "mediancut":
+    default:
       return extractMedianCut(image, numColors);
   }
 }
