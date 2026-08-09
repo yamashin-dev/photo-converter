@@ -1,7 +1,7 @@
 import type { ConversionParams, Palette, PaletteType, ProgressCallback } from "../types";
 import { DEFAULT_SEED, DEFAULT_MAX_DIMENSION } from "../types";
 import type { ImageBuffer } from "../image";
-import { resizeNearest } from "../image";
+import { resizeNearest, cloneImage } from "../image";
 import { FIXED_PALETTES } from "../palettes/fixed";
 import { extractPalette, PALETTE_SEED } from "../palettes/extract";
 import { applyPaletteInPlace } from "../quantize";
@@ -67,6 +67,10 @@ export function convertPixelArt(
     applySaturationInPlace(small, params.saturation);
   }
 
+  // 減色すると境界が階段状になりエッジ判定が鈍るため、
+  // 輪郭を引く場合は減色前の階調を取っておく
+  const tonal = params.outline === "auto" ? cloneImage(small) : null;
+
   // 4. パレット最近傍変換（色キャッシュ付き）
   onProgress?.({ ratio: 0.4, stage: "quantize" });
   applyPaletteInPlace(small, palette);
@@ -77,7 +81,7 @@ export function convertPixelArt(
     if (params.outline === "soft") {
       addSoftOutlineInPlace(small);
     } else {
-      addOutlineInPlace(small, params.pixelSize);
+      addOutlineInPlace(small, params.pixelSize, tonal ?? small);
     }
   }
 

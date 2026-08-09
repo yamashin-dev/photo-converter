@@ -115,57 +115,98 @@ export function detectEdges(
   return edges;
 }
 
+/** 輪郭として黒で塗る画素の割合の目安 */
+const OUTLINE_COVERAGE = 0.055;
+
 /**
  * 自動アウトライン（ドット絵スタイル用）。
- * 画像の複雑さでアルゴリズムと閾値を自動選択し、黒線を描画する。
+ *
+ * 勾配の強い順に、画像全体の一定割合だけを輪郭として塗る。
+ *
+ * 旧実装は固定閾値（画像特性で20〜60に調整）で判定していたが、
+ * この方式は減色後の画像と相性が悪い。減色後は「広い平坦域＋急な段差」に
+ * なるため平均コントラストが低く出て、「低コントラストだから閾値を下げる」
+ * 分岐が働き、色の境界が軒並み輪郭と判定されて画面が黒く潰れていた
+ * （旧実装でも pixelSize=16 で画素の68%が黒になっていた）。
+ * 割合で決めれば、どんな画像でも線の量が一定に保たれる。
+ *
+ * @param edgeSource エッジ判定に使う画像。減色前の階調が残ったものを渡すと
+ *                   境界がより正確に出る。省略時は描画対象と同じ画像を使う
  */
-export function addOutlineInPlace(image: ImageBuffer, pixelSize: number): void {
+export function addOutlineInPlace(
+  image: ImageBuffer,
+  pixelSize: number,
+  edgeSource: ImageBuffer = image
+): void {
   const { width, height, data } = image;
-  const { edgeDensity, avgContrast } = analyzeImageCharacteristics(image);
+  const magnitude = sobelMagnitude(edgeSource);
 
-  // 複雑さに基づくアルゴリズム選択
-  let algorithm: EdgeAlgorithm;
-  let threshold: number;
-  if (edgeDensity > 0.4) {
-    algorithm = "laplacian"; // 細かい画像: シャープで細い線
-    threshold = 40;
-  } else if (edgeDensity > 0.2) {
-    algorithm = "sobel"; // 中間: バランス
-    threshold = 25;
-  } else {
-    algorithm = "prewitt"; // シンプル: ソフト
-    threshold = 20;
+  // 勾配強度のヒストグラムから、上位 OUTLINE_COVERAGE 分の閾値を求める
+  const BINS = 512;
+  let maxMag = 0;
+  for (const m of magnitude) if (m > maxMag) maxMag = m;
+  if (maxMag <= 0) return; // 完全に平坦な画像には線を引かない
+
+  const hist = new Uint32Array(BINS);
+  for (const m of magnitude) {
+    hist[Math.min(BINS - 1, Math.floor((m / maxMag) * (BINS - 1)))]++;
+  }
+  const target = Math.floor(magnitude.length * OUTLINE_COVERAGE);
+  let acc = 0;
+  let bin = BINS - 1;
+  while (bin > 0 && acc + hist[bin] <= target) {
+    acc += hist[bin];
+    bin--;
+  }
+  // 抜けたビンを含めると目標を超えるので、ひとつ上を閾値にする。
+  // これにより「勾配がどこも同じ画像」では線が引かれない
+  // （そういう画像に輪郭と呼べる境界は無い）
+  let threshold = ((bin + 1) / (BINS - 1)) * maxMag;
+
+  // ただし、それだと1画素も選ばれない場合がある。
+  // 小さい画像やはっきりした境界だけの画像では、境界の画素数が
+  // 目標割合を超えてしまうため。線が消えるよりは多少多くても引く
+  if (acc === 0 && bin > 0) {
+    threshold = (bin / (BINS - 1)) * maxMag;
   }
 
-  // コントラストで閾値補正
-  if (avgContrast < 30) {
-    threshold = Math.max(15, threshold - 10);
-  } else if (avgContrast > 80) {
-    threshold = Math.min(60, threshold + 10);
-  }
-
-  // ピクセルサイズで線の太さを決定
-  const lineThickness = pixelSize >= 12 ? 2 : 1;
-
-  const edges = detectEdges(image, algorithm, threshold);
+  // ドットが粗いほど線も太くしたくなるが、小さい画像で2pxは潰れるため1px固定
+  void pixelSize;
 
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
-      if (!edges[y * width + x]) continue;
-      for (let ty = 0; ty < lineThickness; ty++) {
-        for (let tx = 0; tx < lineThickness; tx++) {
-          const dx = x + tx;
-          const dy = y + ty;
-          if (dx < width && dy < height) {
-            const idx = (dy * width + dx) * 4;
-            data[idx] = 0;
-            data[idx + 1] = 0;
-            data[idx + 2] = 0;
-          }
-        }
-      }
+      if (magnitude[y * width + x] < threshold) continue;
+      const idx = (y * width + x) * 4;
+      data[idx] = 0;
+      data[idx + 1] = 0;
+      data[idx + 2] = 0;
     }
   }
+}
+
+/** Sobelの勾配強度マップ（境界1画素は0のまま） */
+function sobelMagnitude(image: ImageBuffer): Float32Array {
+  const { width, height } = image;
+  const gray = toGrayscale(image);
+  const out = new Float32Array(width * height);
+  const kx = KERNELS.sobel.x;
+  const ky = KERNELS.sobel.y;
+
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
+      let gx = 0;
+      let gy = 0;
+      for (let j = -1; j <= 1; j++) {
+        for (let i = -1; i <= 1; i++) {
+          const g = gray[(y + j) * width + (x + i)];
+          gx += g * kx[j + 1][i + 1];
+          gy += g * ky[j + 1][i + 1];
+        }
+      }
+      out[y * width + x] = Math.sqrt(gx * gx + gy * gy);
+    }
+  }
+  return out;
 }
 
 /**

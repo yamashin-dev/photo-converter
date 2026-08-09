@@ -86,6 +86,40 @@ describe("アウトライン", () => {
     expect(hasBlack).toBe(true);
   });
 
+  it("addOutline: 塗り潰さない（黒くなるのは全体の一部だけ）", () => {
+    // 旧実装は減色後の画像で閾値が下がりすぎ、画素の2〜7割が黒く潰れていた
+    for (const size of [64, 128, 200]) {
+      // 領域の境界がある画像（＝輪郭を引く対象がある画像）で確認する
+      const img = createTwoToneImage(size, size, [230, 220, 200], [60, 90, 70]);
+      addOutlineInPlace(img, 4);
+      let n = 0;
+      for (let i = 0; i < img.data.length; i += 4) {
+        if (img.data[i] === 0 && img.data[i + 1] === 0 && img.data[i + 2] === 0) n++;
+      }
+      const ratio = n / (img.data.length / 4);
+      expect(ratio).toBeGreaterThan(0);
+      expect(ratio).toBeLessThan(0.12);
+    }
+  });
+
+  it("addOutline: 平坦な画像には線を引かない", () => {
+    const flat = createTwoToneImage(32, 32, [128, 128, 128], [128, 128, 128]);
+    addOutlineInPlace(flat, 4);
+    for (let i = 0; i < flat.data.length; i += 4) {
+      expect(flat.data[i]).toBe(128);
+    }
+  });
+
+  it("addOutline: 勾配が一様な画像には線を引かない（際立った境界が無いため）", () => {
+    const img = createGradientImage(96, 96);
+    addOutlineInPlace(img, 4);
+    let n = 0;
+    for (let i = 0; i < img.data.length; i += 4) {
+      if (img.data[i] === 0 && img.data[i + 1] === 0 && img.data[i + 2] === 0) n++;
+    }
+    expect(n / (img.data.length / 4)).toBeLessThan(0.02);
+  });
+
   it("addSoftOutline: 境界が暗いグレー(50,50,50)になる", () => {
     const img = createTwoToneImage(16, 16, [255, 255, 255], [0, 0, 0]);
     addSoftOutlineInPlace(img);

@@ -81,6 +81,20 @@ describe("convertPixelArt: 実行時データのサニタイズ（旧PHPのフ�
     }
   });
 
+  it("outline='auto'はどのドットサイズでも画面を黒く潰さない", () => {
+    // 旧実装ではpixelSizeが大きいほど黒が増え、16では画素の68%が黒だった
+    const src = createGradientImage(256, 192);
+    for (const pixelSize of [2, 4, 8, 12, 16]) {
+      const out = convertPixelArt(src, baseParams({ outline: "auto", pixelSize }));
+      let black = 0;
+      for (let i = 0; i < out.data.length; i += 4) {
+        if (out.data[i] === 0 && out.data[i + 1] === 0 && out.data[i + 2] === 0) black++;
+      }
+      const ratio = black / (out.data.length / 4);
+      expect(ratio).toBeLessThan(0.15);
+    }
+  });
+
   it("outline='soft'はソフト縁取り（auto=黒線とは異なる出力）", () => {
     const src = createGradientImage(64, 64);
     const soft = convertPixelArt(src, baseParams({ outline: "soft" }));
