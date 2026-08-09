@@ -1,49 +1,165 @@
+/*
+ * フォトチェンジ デザイントークン
+ *
+ * 方向性: 16bit機のUIを現代のディスプレイ向けに再構築したレトロコンピューティング。
+ * - ダーク = CRTモニタの深い藍（純黒を避ける）
+ * - ライト = 生成りの紙（方眼紙・トレーシングペーパー）
+ * - アクセントは琥珀（アンバーCRT由来）1色に集中
+ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* 面 */
+  --bg: #f2efe6;
+  --surface: #fbfaf5;
+  --surface-sunken: #e9e5d8;
+  --border: #d6d0be;
+  --border-strong: #23262f;
+
+  /* 文字 */
+  --text: #23262f;
+  --text-muted: #5d6070;
+  --text-faint: #8b8e9c;
+
+  /* アクセント（琥珀）— 使用は CTA・アクティブ状態・強調の3箇所まで */
+  --accent: #c97b1f;
+  --accent-hover: #a86414;
+  --accent-contrast: #fffdf7;
+  --accent-soft: rgba(201, 123, 31, 0.12);
+
+  --danger: #b3372c;
+
+  /* 間隔（8px刻み） */
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-48: 48px;
+  --space-64: 64px;
+
+  /* 角丸 — 役割で変える（均一にしない） */
+  --r-button: 5px;
+  --r-panel: 3px;
+  --r-pill: 999px;
+
+  /* 影 — 用途別 */
+  --shadow-panel: 0 1px 2px rgba(35, 38, 47, 0.06), 0 6px 18px rgba(35, 38, 47, 0.07);
+  --shadow-bevel: 3px 3px 0 var(--border-strong);
+  --shadow-accent: 0 6px 16px rgba(201, 123, 31, 0.28);
+
+  --header-h: 56px;
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+[data-theme="dark"] {
+  --bg: #12141c;
+  --surface: #1a1d28;
+  --surface-sunken: #0d0f16;
+  --border: #2b2f3d;
+  --border-strong: #454a5e;
+
+  --text: rgba(255, 255, 255, 0.88);
+  --text-muted: rgba(255, 255, 255, 0.56);
+  --text-faint: rgba(255, 255, 255, 0.32);
+
+  --accent: #e8a33d;
+  --accent-hover: #f3b65a;
+  --accent-contrast: #14161d;
+  --accent-soft: rgba(232, 163, 61, 0.16);
+
+  --danger: #e2695c;
+
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.38);
+  --shadow-bevel: 3px 3px 0 rgba(0, 0, 0, 0.55);
+  --shadow-accent: 0 6px 18px rgba(232, 163, 61, 0.22);
+
+  color-scheme: dark;
 }
 
-html {
-  height: 100%;
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 html,
 body {
-  max-width: 100vw;
-  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg);
+  /* 紙・CRTの粒状感。均一な単色背景を避けるためのグレイン */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+  color: var(--text);
+  font-family: var(--font-body), "Hiragino Sans", "Yu Gothic", sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: 0;
+  min-height: 100dvh;
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  font-weight: 700;
+}
+
+p {
   margin: 0;
 }
 
-a {
+button {
+  font: inherit;
   color: inherit;
-  text-decoration: none;
+  cursor: pointer;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+a {
+  color: var(--accent);
+  text-underline-offset: 3px;
+}
+
+/* キーボード操作時のみ輪郭を出す */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ドットの連なりで区切る（1pxの実線を使わない） */
+.dottedRule {
+  height: 2px;
+  background-image: radial-gradient(var(--border) 40%, transparent 42%);
+  background-size: 6px 2px;
+  border: 0;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

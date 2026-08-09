@@ -1,0 +1,53 @@
+{
+  "name": "フォトチェンジ — 写真をドット絵・手描き風イラストに変換",
+  "short_name": "フォトチェンジ",
+  "description": "写真をレトロなドット絵や手描き風イラストに変換できる無料ツール。変換はすべてブラウザ内で完結します。",
+  "lang": "ja",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#12141c",
+  "theme_color": "#12141c",
+  "categories": ["photo", "graphics", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "share_target": {
+    "action": "/share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        {
+          "name": "image",
+          "accept": ["image/jpeg", "image/png", "image/gif", "image/webp", "image/heic", "image/heif"]
+        }
+      ]
+    }
+  }
+}

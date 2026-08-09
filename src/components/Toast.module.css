@@ -1,0 +1,73 @@
+.stack {
+  position: fixed;
+  right: var(--space-16);
+  bottom: var(--space-16);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  max-width: min(420px, calc(100vw - 32px));
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-12) var(--space-12) var(--space-16);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow-panel);
+  font-size: 13.5px;
+  line-height: 1.5;
+  animation: slideIn 220ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+/* 種別は左の色帯ではなく上辺の実線で示す */
+.success {
+  border-top: 3px solid var(--accent);
+}
+
+.error {
+  border-top: 3px solid var(--danger);
+}
+
+.info {
+  border-top: 3px solid var(--border-strong);
+}
+
+.close {
+  margin-left: auto;
+  background: none;
+  border: 0;
+  padding: 0 var(--space-4);
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text-faint);
+  transition: color 140ms ease-out;
+}
+
+.close:hover {
+  color: var(--text);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 560px) {
+  .stack {
+    left: var(--space-12);
+    right: var(--space-12);
+    bottom: var(--space-12);
+    max-width: none;
+  }
+}

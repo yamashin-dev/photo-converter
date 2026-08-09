@@ -1,0 +1,47 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: var(--header-h);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 40px);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+/* ロゴマーク: 4つのドットを敷いた小さなタイル */
+.mark {
+  width: 20px;
+  height: 20px;
+  background-color: var(--accent);
+  background-image:
+    linear-gradient(45deg, color-mix(in srgb, var(--accent) 55%, #000) 25%, transparent 25%),
+    linear-gradient(-45deg, color-mix(in srgb, var(--accent) 55%, #000) 25%, transparent 25%);
+  background-size: 10px 10px;
+  border: 2px solid var(--border-strong);
+  /* わずかに傾けて機械的な整列を外す */
+  transform: rotate(-4deg);
+}
+
+.name {
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: 17px;
+  letter-spacing: 0.06em;
+}

@@ -1,0 +1,80 @@
+.banner {
+  position: fixed;
+  left: var(--space-16);
+  right: var(--space-16);
+  bottom: var(--space-16);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: var(--space-24);
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-16) var(--space-24);
+  background: var(--surface);
+  border: 2px solid var(--border-strong);
+  border-radius: 4px;
+  box-shadow: var(--shadow-panel);
+}
+
+.text {
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+.link {
+  margin-left: 6px;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-8);
+  margin-left: auto;
+  flex: none;
+}
+
+/* 許可・拒否のサイズと押しやすさは揃える */
+.btn {
+  min-height: 40px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-button);
+  transition: background-color 140ms ease-out;
+}
+
+.btn:hover {
+  background: var(--surface-sunken);
+}
+
+.primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.primary:hover {
+  background: var(--accent-hover);
+}
+
+@media (max-width: 640px) {
+  .banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-12);
+    padding: var(--space-16);
+  }
+
+  .actions {
+    margin-left: 0;
+  }
+
+  .btn {
+    flex: 1;
+  }
+}
