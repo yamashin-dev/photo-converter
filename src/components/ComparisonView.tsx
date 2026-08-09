@@ -128,12 +128,12 @@ export function ComparisonView({
           </div>
         )}
 
-        {/* 下書きは見えているので画面は塞がず、隅で進み具合だけ伝える */}
+        {/* 下書きは見えているので画面は塞がず、中央で進み具合だけ伝える */}
         {state === "refining" && (
           <div className={styles.refining}>
             <p className={styles.refiningText} role="status">
               <span className={styles.refiningDot} aria-hidden="true" />
-              仕上げ中 {percent}%
+              きれいに仕上げています {percent}%
             </p>
             <div
               className={styles.refiningTrack}

@@ -182,17 +182,24 @@
  * 下書きが見えている間の控えめな表示。
  * 画面を覆うと、せっかく先に出した絵が見えなくなるため隅に置く。
  */
+/*
+ * 下書きが見えている間の進捗。
+ * 隅に小さく出していたときは気づかれなかったため中央に置く。
+ * ただし下書きを隠しきらないよう、幅は抑えて背景も透かさない。
+ */
 .refining {
   position: absolute;
-  right: var(--space-8);
-  bottom: var(--space-8);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   z-index: 6;
   display: grid;
-  gap: 5px;
-  min-width: 140px;
-  padding: 7px 11px;
+  gap: var(--space-8);
+  width: min(260px, 72%);
+  padding: var(--space-16);
+  text-align: center;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border-strong);
   border-radius: 4px;
   box-shadow: var(--shadow-panel);
 }
@@ -200,25 +207,33 @@
 .refiningText {
   display: flex;
   align-items: center;
-  gap: 7px;
+  justify-content: center;
+  gap: 8px;
   margin: 0;
-  font-size: 11.5px;
+  font-size: 13px;
   letter-spacing: 0.06em;
   line-height: 1.6;
-  color: var(--text-muted);
+  color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 
 .refiningTrack {
-  height: 4px;
+  height: 8px;
   background: var(--surface-sunken);
-  border-radius: 2px;
+  border: 1px solid var(--border-strong);
   overflow: hidden;
 }
 
+/* 進捗バーもドットの積み上げで見せる（変換中の表示と揃える） */
 .refiningBar {
   height: 100%;
-  background: var(--accent);
+  background-color: var(--accent);
+  background-image: linear-gradient(
+    90deg,
+    var(--accent) 0 4px,
+    color-mix(in srgb, var(--accent) 72%, transparent) 4px 6px
+  );
+  background-size: 6px 100%;
   transition: width 200ms cubic-bezier(0, 0, 0.2, 1);
 }
 
