@@ -5,7 +5,8 @@
 
 /* --- ヒーロー --- */
 .hero {
-  max-width: 640px;
+  /* 見出しが1行に収まる幅。行が長くても見出しは視線移動の負担が小さい */
+  max-width: 860px;
 }
 
 .title {
@@ -13,6 +14,15 @@
   line-height: 1.08;
   letter-spacing: -0.02em;
   margin-bottom: var(--space-16);
+}
+
+/*
+ * 日本語はどこでも改行できてしまうため、放っておくと
+ * 「手描き / 風に。」のように語の途中で切れる。
+ * 意味のまとまりを inline-block にして、その境界でのみ折り返す。
+ */
+.phrase {
+  display: inline-block;
 }
 
 .titleAccent {
@@ -27,7 +37,8 @@
   font-size: 14.5px;
   line-height: 1.75;
   color: var(--text-muted);
-  max-width: 46ch;
+  /* 1行が長すぎると読みにくいので、文単位の折り返しに委ねつつ上限も設ける */
+  max-width: 60ch;
 }
 
 /* --- 作業画面 --- */

@@ -294,13 +294,19 @@ export function Converter() {
 function Hero() {
   return (
     <div className={styles.hero}>
+      {/* 意味のまとまりごとに分ける。語の途中で改行されると日本語として読みにくいため */}
       <h1 className={styles.title}>
-        写真を、
-        <span className={styles.titleAccent}>ドット絵</span>と
-        <span className={styles.titleAccent}>手描き風</span>に。
+        <span className={styles.phrase}>写真を、</span>
+        <span className={styles.phrase}>
+          <span className={styles.titleAccent}>ドット絵</span>と
+        </span>
+        <span className={styles.phrase}>
+          <span className={styles.titleAccent}>手描き風</span>に。
+        </span>
       </h1>
       <p className={styles.subtitle}>
-        変換はすべてこの端末の中で行われます。写真がどこかに送られることはありません。
+        <span className={styles.phrase}>変換はすべてこの端末の中で行われます。</span>
+        <span className={styles.phrase}>写真がどこかに送られることはありません。</span>
       </p>
     </div>
   );

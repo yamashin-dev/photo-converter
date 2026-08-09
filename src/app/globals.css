@@ -94,6 +94,10 @@ html {
 }
 
 body {
+  /* 句読点や閉じ括弧が行頭に来ないようにする（日本語の禁則処理を厳密に） */
+  line-break: strict;
+  /* 長いURLなどがはみ出すときだけ折る。anywhereはflexの幅計算にも効くため使わない */
+  overflow-wrap: break-word;
   background-color: var(--bg);
   /* 紙・CRTの粒状感。均一な単色背景を避けるためのグレイン */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
