@@ -31,8 +31,11 @@ export function Analytics() {
 
     const w = window as unknown as { dataLayer?: unknown[]; gtag?: (...a: unknown[]) => void };
     w.dataLayer = w.dataLayer || [];
-    w.gtag = function gtag(...args: unknown[]) {
-      w.dataLayer!.push(args);
+    // gtag.jsはdataLayerに積まれた「argumentsオブジェクト」だけをコマンドとして解釈する。
+    // スプレッドで作った配列を積むと素通しされ、計測が一切走らない
+    w.gtag = function gtag() {
+      // eslint-disable-next-line prefer-rest-params
+      w.dataLayer!.push(arguments);
     };
     w.gtag("js", new Date());
     w.gtag("config", SITE.gaId, { anonymize_ip: true });

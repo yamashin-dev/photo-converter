@@ -10,7 +10,7 @@ import { IconDownload, IconLink, IconReset } from "./Icon";
 import { trackEvent } from "./Analytics";
 import type { ConversionParams } from "@/engine/types";
 import { useConversion } from "@/hooks/useConversion";
-import { ILLUSTRATION_DEFAULTS, paramsToQuery } from "@/lib/params";
+import { DEFAULT_PARAMS, ILLUSTRATION_DEFAULTS, paramsToQuery } from "@/lib/params";
 import {
   getParamsServerSnapshot,
   getParamsSnapshot,
@@ -42,6 +42,21 @@ export function Converter() {
   const { toasts, push, dismiss } = useToasts();
 
   const conversion = useConversion(source, params);
+
+  // 元画像のBlob URLはイベント側で作る（レンダーやeffectでは副作用を起こさない）。
+  // 最新のURLをrefで押さえ、アンマウント時に取りこぼさず解放する
+  const originalUrlRef = useRef<string | null>(null);
+  const replaceOriginalUrl = useCallback((url: string | null) => {
+    if (originalUrlRef.current) URL.revokeObjectURL(originalUrlRef.current);
+    originalUrlRef.current = url;
+    setOriginalUrl(url);
+  }, []);
+  useEffect(
+    () => () => {
+      if (originalUrlRef.current) URL.revokeObjectURL(originalUrlRef.current);
+    },
+    []
+  );
 
   // 変換結果をBlob URLにする。生成したURLはcleanupで必ず解放する
   useEffect(() => {
@@ -80,10 +95,7 @@ export function Converter() {
         const data = await loadImageData(file);
         setSource(data);
         setSourceName(file.name.replace(/\.[^.]+$/, "") || "photo");
-        setOriginalUrl((prev) => {
-          if (prev) URL.revokeObjectURL(prev);
-          return URL.createObjectURL(file);
-        });
+        replaceOriginalUrl(URL.createObjectURL(file));
         trackEvent("image_loaded", { width: data.width, height: data.height });
       } catch (e) {
         push(
@@ -96,7 +108,7 @@ export function Converter() {
         setLoading(false);
       }
     },
-    [push]
+    [push, replaceOriginalUrl]
   );
 
   // 共有起動の受け取りはマウント時に一度だけ走るため、最新の関数を参照で持つ
@@ -114,12 +126,17 @@ export function Converter() {
       try {
         const cache = await caches.open("pc-share");
         const res = await cache.match("/shared-image");
+        // 読めても読めなくても、預かった写真は端末に残さない
+        await cache.delete("/shared-image");
+        window.history.replaceState(null, "", window.location.pathname);
         if (!res || cancelled) return;
+
+        // 前回の共有の残骸を誤って開かないよう、受け取り時刻を確認する
+        const receivedAt = Number(res.headers.get("X-Received-At") ?? 0);
+        if (receivedAt && Date.now() - receivedAt > 5 * 60 * 1000) return;
+
         const blob = await res.blob();
         const name = decodeURIComponent(res.headers.get("X-Filename") || "shared");
-        await cache.delete("/shared-image");
-        // 履歴からクエリを消し、再読み込みで二重に取り込まないようにする
-        window.history.replaceState(null, "", window.location.pathname);
         await handleFileRef.current(new File([blob], name, { type: blob.type }));
       } catch {
         // 受け取れなくても通常の選択導線は使える
@@ -137,8 +154,17 @@ export function Converter() {
       if (p.style === "illustration" && prev.style !== "illustration") {
         return { ...prev, ...ILLUSTRATION_DEFAULTS, ...p };
       }
+      // 手描き風から戻すときは、手描き風用に寄せた値をすべて既定へ戻す
+      // （saturationの戻し漏れで彩度90%が残る問題があった）
       if (p.style && p.style !== "illustration" && prev.style === "illustration") {
-        return { ...prev, ...p, numColors: 16, extractMethod: "mediancut", outline: "none" };
+        return {
+          ...prev,
+          ...p,
+          numColors: DEFAULT_PARAMS.numColors,
+          extractMethod: DEFAULT_PARAMS.extractMethod,
+          outline: DEFAULT_PARAMS.outline,
+          saturation: DEFAULT_PARAMS.saturation,
+        };
       }
       return { ...prev, ...p };
     });
@@ -147,15 +173,10 @@ export function Converter() {
   const reset = useCallback(() => {
     conversion.cancel();
     setSource(null);
-    setOriginalUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return null;
-    });
-    setResultUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return null;
-    });
-  }, [conversion]);
+    replaceOriginalUrl(null);
+    // 変換結果側のURLはeffectのcleanupが解放する
+    setResultUrl(null);
+  }, [conversion, replaceOriginalUrl]);
 
   const download = useCallback(async () => {
     if (!conversion.result) return;
@@ -211,6 +232,7 @@ export function Converter() {
               isConverting={conversion.isConverting}
               progress={conversion.progress}
               onCancel={conversion.cancel}
+              onRetry={conversion.retry}
               pixelated={pixelated}
             />
 

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ConversionParams } from "@/engine/types";
-import { DEFAULT_PARAMS, loadParams, queryToParams, saveParams } from "./params";
+import { DEFAULT_PARAMS, hasParamKeys, loadParams, queryToParams, saveParams } from "./params";
 
 /**
  * 変換パラメータの外部ストア。
@@ -24,8 +24,11 @@ export function subscribeParams(fn: () => void): () => void {
 
 export function getParamsSnapshot(): ConversionParams {
   if (!hydrated && typeof window !== "undefined") {
+    // 設定用のキーが1つでも含まれるときだけ共有リンクとみなす。
+    // ?shared=1（共有起動）や ?utm_source= のような無関係なクエリで
+    // 保存済みの設定を捨ててしまわないようにする
     const search = window.location.search;
-    snapshot = search.length > 1 ? queryToParams(search) : (loadParams() ?? DEFAULT_PARAMS);
+    snapshot = hasParamKeys(search) ? queryToParams(search) : (loadParams() ?? DEFAULT_PARAMS);
     hydrated = true;
   }
   return snapshot;

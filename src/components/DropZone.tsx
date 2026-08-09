@@ -1,9 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import styles from "./DropZone.module.css";
 import { IconUpload } from "./Icon";
 import { ACCEPTED_TYPES } from "@/lib/imageLoader";
+
+/** 変化しない値を読むだけなので購読は不要 */
+const subscribeNoop = () => () => {};
 
 export function DropZone({
   onFile,
@@ -15,6 +18,13 @@ export function DropZone({
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dragDepth = useRef(0);
+  // 静的HTMLにはビルドマシンの環境が焼き込まれてしまうため、
+  // 端末依存の表記はhydration後に差し替える（既定はWindows/Linux表記）
+  const modifier = useSyncExternalStore(
+    subscribeNoop,
+    () => (/Mac|iPhone|iPad/.test(navigator.userAgent) ? "⌘" : "Ctrl"),
+    () => "Ctrl"
+  );
 
   const handleFiles = useCallback(
     (files: FileList | null) => {
@@ -82,7 +92,7 @@ export function DropZone({
         </span>
         <h2 className={styles.title}>写真を選ぶ</h2>
         <p className={styles.lead}>
-          ここにドラッグ＆ドロップ、貼り付け（{modifierLabel()}+V）、
+          ここにドラッグ＆ドロップ、貼り付け（{modifier}+V）、
           <br className={styles.brOnlyWide} />
           またはボタンから選択できます。
         </p>
@@ -101,9 +111,4 @@ export function DropZone({
       </div>
     </div>
   );
-}
-
-function modifierLabel(): string {
-  if (typeof navigator === "undefined") return "Ctrl";
-  return /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? "⌘" : "Ctrl";
 }

@@ -107,6 +107,16 @@ const KEYS: Record<string, keyof ConversionParams> = {
   sh: "removeShadow",
 };
 
+/**
+ * 設定用のキーを1つでも含むクエリかどうか。
+ * ?shared=1 や ?utm_source= のような無関係なクエリを
+ * 「共有リンク」と誤認して保存済み設定を捨てないための判定。
+ */
+export function hasParamKeys(search: string): boolean {
+  const q = new URLSearchParams(search);
+  return Object.keys(KEYS).some((short) => q.has(short));
+}
+
 export function paramsToQuery(params: ConversionParams): string {
   const q = new URLSearchParams();
   for (const [short, key] of Object.entries(KEYS)) {

@@ -5,36 +5,49 @@
  * 1. アプリシェルをキャッシュしてオフラインでも変換できるようにする
  *    （変換はすべて端末内で動くので、資産さえ手元にあれば通信は不要）
  * 2. OSの共有メニューから送られてきた画像を受け取り、アプリへ橋渡しする
+ *
+ * BUILD_ID と PRECACHE_ASSETS は、ビルド後に scripts/generate-sw.mjs が
+ * 実際の出力ファイル一覧で書き換える。ここにある値は開発用のひな形。
  */
 
-const VERSION = "v1";
-const SHELL_CACHE = `pc-shell-${VERSION}`;
+const BUILD_ID = "dev";
+const PRECACHE_ASSETS = [];
+
+const SHELL_CACHE = `pc-shell-${BUILD_ID}`;
 const SHARE_CACHE = "pc-share";
 
 /** 最低限これだけあれば起動できるもの */
-const SHELL_URLS = ["/", "/offline.html", "/manifest.webmanifest"];
+const SHELL_URLS = ["/", "/offline.html", "/manifest.webmanifest", ...PRECACHE_ASSETS];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(SHELL_CACHE)
-      .then((cache) => cache.addAll(SHELL_URLS))
+      // 1つでも失敗すると全滅するaddAllは使わず、個別に入れる
+      .then((cache) =>
+        Promise.all(
+          SHELL_URLS.map((url) =>
+            cache.add(new Request(url, { cache: "reload" })).catch(() => undefined)
+          )
+        )
+      )
       .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(
-          keys
-            .filter((k) => k.startsWith("pc-shell-") && k !== SHELL_CACHE)
-            .map((k) => caches.delete(k))
-        )
-      )
-      .then(() => self.clients.claim())
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys
+          .filter((k) => k.startsWith("pc-shell-") && k !== SHELL_CACHE)
+          .map((k) => caches.delete(k))
+      );
+      // 共有で預かった画像を持ち越さない（端末に写真を残さないため）
+      await caches.delete(SHARE_CACHE);
+      await self.clients.claim();
+    })()
   );
 });
 
@@ -51,8 +64,14 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET" || url.origin !== self.location.origin) return;
 
   // ハッシュ付きの静的アセットは内容が変わらないのでキャッシュ優先
-  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/")) {
+  if (url.pathname.startsWith("/_next/static/")) {
     event.respondWith(cacheFirst(request));
+    return;
+  }
+
+  // アイコン等はファイル名が変わらないので、鮮度を優先しつつ失敗時に備える
+  if (url.pathname.startsWith("/icons/") || url.pathname === "/ogp.png") {
+    event.respondWith(staleWhileRevalidate(request));
     return;
   }
 
@@ -65,6 +84,7 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(networkFirst(request));
 });
 
+/** 一定時間で消えるように、共有画像には受け取り時刻を添える */
 async function handleShare(request) {
   try {
     const formData = await request.formData();
@@ -77,6 +97,7 @@ async function handleShare(request) {
           headers: {
             "Content-Type": file.type || "application/octet-stream",
             "X-Filename": encodeURIComponent(file.name || "shared"),
+            "X-Received-At": String(Date.now()),
           },
         })
       );
@@ -98,6 +119,20 @@ async function cacheFirst(request) {
   return response;
 }
 
+async function staleWhileRevalidate(request) {
+  const cached = await caches.match(request);
+  const network = fetch(request)
+    .then(async (response) => {
+      if (response.ok) {
+        const cache = await caches.open(SHELL_CACHE);
+        cache.put(request, response.clone());
+      }
+      return response;
+    })
+    .catch(() => null);
+  return cached || (await network) || Response.error();
+}
+
 async function networkFirstPage(request) {
   try {
     const response = await fetch(request);
@@ -111,7 +146,10 @@ async function networkFirstPage(request) {
       (await caches.match(request)) ||
       (await caches.match("/")) ||
       (await caches.match("/offline.html")) ||
-      new Response("オフラインです", { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } })
+      new Response("オフラインです", {
+        status: 503,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      })
     );
   }
 }

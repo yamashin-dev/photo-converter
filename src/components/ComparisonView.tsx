@@ -28,6 +28,7 @@ export function ComparisonView({
   isConverting,
   progress,
   onCancel,
+  onRetry,
   pixelated,
 }: {
   originalUrl: string;
@@ -35,6 +36,7 @@ export function ComparisonView({
   isConverting: boolean;
   progress: ConversionProgress | null;
   onCancel: () => void;
+  onRetry: () => void;
   pixelated: boolean;
 }) {
   // 画像が差し替わったときの初期化は、呼び出し側が key を変えて行う
@@ -103,6 +105,18 @@ export function ComparisonView({
               </div>
               <button type="button" className={styles.cancel} onClick={onCancel}>
                 中止する
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 中止したままだと何も出せないので、やり直す導線を残す */}
+        {!isConverting && !resultUrl && (
+          <div className={styles.progressLayer}>
+            <div className={styles.progressBox}>
+              <p className={styles.stage}>変換を中止しました</p>
+              <button type="button" className={styles.retry} onClick={onRetry}>
+                もう一度変換する
               </button>
             </div>
           </div>
