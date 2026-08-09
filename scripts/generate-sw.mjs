@@ -13,7 +13,7 @@
 
 import { createHash } from "node:crypto";
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
-import { join, relative, sep } from "node:path";
+import { join } from "node:path";
 
 const OUT_DIR = "out";
 /** プリキャッシュ対象にするページ（これらがオフラインで開ける） */
