@@ -6,6 +6,7 @@ import { DropZone } from "./DropZone";
 import { ControlPanel } from "./ControlPanel";
 import { ComparisonView, type PreviewState } from "./ComparisonView";
 import { ToastList, useToasts } from "./Toast";
+import { Showcase } from "./Showcase";
 import { IconDownload, IconLink, IconReset } from "./Icon";
 import { trackEvent } from "./Analytics";
 import type { ConversionParams } from "@/engine/types";
@@ -137,6 +138,9 @@ export function Converter() {
     [push, replaceOriginalUrl]
   );
 
+  /** サンプルを押すたびに別の写真を出すための位置 */
+  const sampleIndexRef = useRef(0);
+
   // 共有起動の受け取りはマウント時に一度だけ走るため、最新の関数を参照で持つ
   const handleFileRef = useRef(handleFile);
   useEffect(() => {
@@ -173,6 +177,27 @@ export function Converter() {
       cancelled = true;
     };
   }, []);
+
+  /** 手持ちの写真がなくても試せるよう、同梱のサンプルを読み込む */
+  const loadSample = useCallback(async () => {
+    setLoading(true);
+    try {
+      // 毎回同じ絵にならないよう、3枚から順番に出す
+      const names = ["island", "cape", "harbor"];
+      const picked = names[sampleIndexRef.current % names.length];
+      sampleIndexRef.current++;
+      const res = await fetch(`/samples/${picked}.jpg`);
+      if (!res.ok) throw new Error("sample not found");
+      const blob = await res.blob();
+      await handleFileRef.current(
+        new File([blob], `サンプル-${picked}.jpg`, { type: "image/jpeg" })
+      );
+    } catch {
+      push("error", "サンプル写真を読み込めませんでした。お手持ちの写真でお試しください");
+    } finally {
+      setLoading(false);
+    }
+  }, [push]);
 
   const patch = useCallback((p: Partial<ConversionParams>) => {
     updateParams((prev) => {
@@ -246,7 +271,9 @@ export function Converter() {
       {!source ? (
         <div className={styles.intro}>
           <Hero />
-          <DropZone onFile={handleFile} disabled={loading} />
+          <DropZone onFile={handleFile} onSample={loadSample} disabled={loading} />
+          {/* 何ができるツールかは、写真を選ぶ導線の「下」で伝える */}
+          <Showcase />
         </div>
       ) : (
         <div className={styles.workspace}>
@@ -333,9 +360,15 @@ function Hero() {
           <span className={styles.titleAccent}>手描き風</span>に。
         </span>
       </h1>
+      {/*
+        「登録不要・アップロードなし」は同種のツールでは当たり前になっており、
+        それだけでは差にならない。端末内で動くことの実利（待たない・電波が要らない）を先に言う。
+      */}
       <p className={styles.subtitle}>
-        <span className={styles.phrase}>変換はすべてこの端末の中で行われます。</span>
-        <span className={styles.phrase}>写真がどこかに送られることはありません。</span>
+        <span className={styles.phrase}>アップロードを待ちません。</span>
+        <span className={styles.phrase}>設定を動かすとその場で変わります。</span>
+        <span className={styles.phrase}>変換はすべて端末の中で行われるので、</span>
+        <span className={styles.phrase}>写真が外に出ることはありません。</span>
       </p>
     </div>
   );

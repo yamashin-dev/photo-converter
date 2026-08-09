@@ -7,9 +7,11 @@ import {
   COLOR_COUNTS,
   DITHERING_GROUPS,
   EXTRACT_OPTIONS,
+  matchPreset,
   OUTLINE_OPTIONS,
   PALETTE_OPTIONS,
   PIXEL_SIZES,
+  PRESETS,
   STYLE_OPTIONS,
 } from "@/lib/params";
 import { IconChevron } from "./Icon";
@@ -25,8 +27,36 @@ export function ControlPanel({
   const id = useId();
   const isIllustration = params.style === "illustration";
 
+  const activePreset = matchPreset(params);
+
   return (
     <div className={styles.panel}>
+      {/* 0. プリセット: 設定を理解しなくても、ここだけで仕上がりが決まる */}
+      <section className={styles.section}>
+        <h3 className={styles.legend}>まずは選ぶだけ</h3>
+        <div className={styles.presets}>
+          {PRESETS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className={`${styles.preset} ${activePreset === p.id ? styles.presetOn : ""}`}
+              onClick={() => onChange(p.params)}
+              aria-pressed={activePreset === p.id}
+              title={p.hint}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <p className={styles.hint}>
+          {activePreset
+            ? PRESETS.find((p) => p.id === activePreset)?.hint
+            : "下の項目を変えると、自分好みに調整できます"}
+        </p>
+      </section>
+
+      <hr className="dottedRule" />
+
       {/* 1. スタイル: 最初の一手。ここだけで完結する人が多いので大きく置く */}
       <section className={styles.section}>
         <h3 className={styles.legend}>スタイル</h3>

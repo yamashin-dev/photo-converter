@@ -57,6 +57,39 @@
   margin-bottom: var(--space-24);
 }
 
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-12);
+}
+
+/* 写真を持っていない人の逃げ道。主役のボタンより控えめにする */
+.sampleButton {
+  min-height: 46px;
+  padding: 12px 20px;
+  font-size: 13.5px;
+  letter-spacing: 0.02em;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-control);
+  border-radius: var(--r-button);
+  transition:
+    color 140ms ease-out,
+    border-color 140ms ease-out;
+}
+
+.sampleButton:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.sampleButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .button {
   padding: 13px 30px;
   background: var(--accent);

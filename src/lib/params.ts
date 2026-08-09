@@ -41,10 +41,15 @@ export const STYLE_OPTIONS: { value: ConversionStyle; label: string; hint: strin
   { value: "illustration", label: "手描き風", hint: "影を飛ばした柔らかいイラスト調" },
 ];
 
+/**
+ * 色づかいの選択肢。
+ * 内部の値（famicom / gameboy）は旧実装からの互換のため据え置き、
+ * 表示名だけ一般名詞にしている。特定の商品名は商標にあたるため使わない。
+ */
 export const PALETTE_OPTIONS: { value: PaletteType; label: string }[] = [
   { value: "auto", label: "写真から自動抽出" },
-  { value: "famicom", label: "ファミコン風" },
-  { value: "gameboy", label: "ゲームボーイ風" },
+  { value: "famicom", label: "8bit家庭用機風" },
+  { value: "gameboy", label: "携帯ゲーム機風（緑）" },
   { value: "grayscale", label: "モノクロ" },
   { value: "warm", label: "セピア" },
   { value: "cool", label: "ブルー" },
@@ -98,6 +103,139 @@ export const OUTLINE_OPTIONS: { value: OutlineType; label: string }[] = [
 
 export const PIXEL_SIZES = [2, 4, 8, 12, 16] as const;
 export const COLOR_COUNTS = [4, 8, 16, 32, 64] as const;
+
+/**
+ * ひと押しで仕上がりが決まる入口。
+ *
+ * スタイル3種 × ドット5段階 × 色数5段階 × ディザ9種 × パレット9種 と
+ * 組み合わせが多すぎて、初めての人は選びようがない。
+ * まずここから選んでもらい、細かい調整は「こだわる」に譲る。
+ */
+export interface Preset {
+  id: string;
+  label: string;
+  hint: string;
+  params: Partial<ConversionParams>;
+}
+
+export const PRESETS: Preset[] = [
+  {
+    id: "retro-game",
+    label: "レトロゲーム",
+    hint: "粗いドットと16色。8bit機のような画面に",
+    params: {
+      style: "pixel-retro",
+      pixelSize: 8,
+      numColors: 16,
+      paletteType: "auto",
+      extractMethod: "mediancut",
+      dithering: "ordered-4x4",
+      outline: "none",
+      saturation: 115,
+    },
+  },
+  {
+    id: "fine-dot",
+    label: "細かいドット",
+    hint: "被写体が分かる細かさ。SNSのアイコン向き",
+    params: {
+      style: "pixel-retro",
+      pixelSize: 4,
+      numColors: 32,
+      paletteType: "auto",
+      extractMethod: "mediancut",
+      dithering: "floyd-steinberg",
+      outline: "none",
+      saturation: 100,
+    },
+  },
+  {
+    id: "handheld-green",
+    label: "携帯ゲーム機",
+    hint: "緑一色の懐かしい画面",
+    params: {
+      style: "pixel-retro",
+      pixelSize: 8,
+      numColors: 16,
+      paletteType: "gameboy",
+      dithering: "ordered-2x2",
+      outline: "none",
+      saturation: 100,
+    },
+  },
+  {
+    id: "illustration",
+    label: "手描き風",
+    hint: "影を飛ばした、やわらかいイラスト調",
+    params: {
+      style: "illustration",
+      pixelSize: 4,
+      numColors: 8,
+      paletteType: "auto",
+      extractMethod: "kmeans",
+      dithering: "none",
+      outline: "none",
+      saturation: 100,
+      removeShadow: true,
+    },
+  },
+  {
+    id: "anime-line",
+    label: "線画つき",
+    hint: "輪郭線を足して、アニメ調に近づける",
+    params: {
+      style: "illustration",
+      pixelSize: 4,
+      numColors: 12,
+      paletteType: "auto",
+      extractMethod: "kmeans",
+      dithering: "none",
+      outline: "soft",
+      saturation: 110,
+      removeShadow: true,
+      enhanceContrast: true,
+    },
+  },
+  {
+    id: "monochrome",
+    label: "モノクロ",
+    hint: "新聞の写真のような点描",
+    params: {
+      style: "pixel-retro",
+      pixelSize: 4,
+      numColors: 16,
+      paletteType: "grayscale",
+      dithering: "patterning-4x4",
+      outline: "none",
+      saturation: 100,
+    },
+  },
+  {
+    id: "sunset",
+    label: "夕焼け",
+    hint: "紫からオレンジへ。夕暮れの色に染める",
+    params: {
+      style: "pixel-integer",
+      pixelSize: 8,
+      numColors: 16,
+      paletteType: "sunset",
+      dithering: "ordered-4x4",
+      outline: "none",
+      saturation: 100,
+    },
+  },
+];
+
+/** いま選ばれている設定に一致するプリセットを探す（無ければnull） */
+export function matchPreset(params: ConversionParams): string | null {
+  for (const preset of PRESETS) {
+    const same = Object.entries(preset.params).every(
+      ([key, value]) => params[key as keyof ConversionParams] === value
+    );
+    if (same) return preset.id;
+  }
+  return null;
+}
 
 /** URLクエリ ⇔ パラメータ。共有リンクで設定ごと渡せるようにする */
 const KEYS: Record<string, keyof ConversionParams> = {

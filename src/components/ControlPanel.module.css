@@ -19,6 +19,41 @@
   margin-bottom: var(--space-16);
 }
 
+/* --- プリセット --- */
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.preset {
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+  border: 1px solid var(--border-control);
+  /* 押せるものだと分かるよう、他の面より丸みを強めにする */
+  border-radius: var(--r-pill);
+  transition:
+    color 120ms ease-out,
+    background-color 120ms ease-out,
+    border-color 120ms ease-out;
+}
+
+.preset:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.presetOn {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--border-strong);
+}
+
 /* --- スタイル選択 --- */
 .styleList {
   display: grid;

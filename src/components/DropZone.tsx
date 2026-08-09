@@ -10,9 +10,12 @@ const subscribeNoop = () => () => {};
 
 export function DropZone({
   onFile,
+  onSample,
   disabled,
 }: {
   onFile: (file: File) => void;
+  /** 写真を持っていない人向けの導線。省略するとボタンは出ない */
+  onSample?: () => void;
   disabled?: boolean;
 }) {
   const [dragging, setDragging] = useState(false);
@@ -102,14 +105,26 @@ export function DropZone({
           <br className={styles.brOnlyWide} />
           またはボタンから選択できます。
         </p>
-        <button
-          type="button"
-          className={styles.button}
-          onClick={() => inputRef.current?.click()}
-          disabled={disabled}
-        >
-          ファイルを選ぶ
-        </button>
+        <div className={styles.actions}>
+          <button
+            type="button"
+            className={styles.button}
+            onClick={() => inputRef.current?.click()}
+            disabled={disabled}
+          >
+            ファイルを選ぶ
+          </button>
+          {onSample && (
+            <button
+              type="button"
+              className={styles.sampleButton}
+              onClick={onSample}
+              disabled={disabled}
+            >
+              サンプル写真で試す
+            </button>
+          )}
+        </div>
         <p className={styles.note}>
           JPEG / PNG / GIF / WebP / HEIC 対応。
           <strong className={styles.strong}>画像はこの端末から送信されません。</strong>
