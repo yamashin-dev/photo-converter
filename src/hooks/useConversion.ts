@@ -7,12 +7,26 @@ import { startConversion, ConversionCancelledError } from "@/lib/converter";
 /** 設定変更が続いている間は変換を走らせないための待ち時間 */
 const DEBOUNCE_MS = 220;
 
+/**
+ * 下書きプレビューの解像度（長辺px）。
+ *
+ * 手描き風は前処理が重く、1600pxでも実測で10秒近くかかる。
+ * まず粗く作って見せ、続けて本来の品質へ差し替える。
+ * 720pxでは下書き自体に2.6秒かかったため、雰囲気が分かる最小限まで落としている。
+ */
+const DRAFT_MAX_DIMENSION = 480;
+
+/** 元画像がこの倍率より大きいときだけ下書きを挟む（小さい画像は一発で十分速い） */
+const DRAFT_THRESHOLD = 1.6;
+
 export interface ConversionState {
   result: ImageData | null;
   /** その結果がどの入力から作られたか。古い結果を表示しないための照合用 */
   resultSource: ImageData | null;
   progress: ConversionProgress | null;
   isConverting: boolean;
+  /** 表示中の結果が下書き（粗い先出し）かどうか */
+  isDraft: boolean;
   error: string | null;
   /** 直近の変換にかかった時間（ms） */
   elapsedMs: number | null;
@@ -23,6 +37,7 @@ const EMPTY: ConversionState = {
   resultSource: null,
   progress: null,
   isConverting: false,
+  isDraft: false,
   error: null,
   elapsedMs: null,
 };
@@ -64,28 +79,60 @@ export function useConversion(source: ImageData | null, params: ConversionParams
       setState((s) => ({ ...s, isConverting: true, error: null, progress: null }))
     );
 
-    timerRef.current = setTimeout(() => {
+    timerRef.current = setTimeout(async () => {
       const startedAt = performance.now();
+      const longSide = Math.max(source.width, source.height);
+      const isCurrent = () => runId === runIdRef.current;
+
+      // 1. 下書き: 縮小して素早く作り、待ち時間を体感させない。
+      //    ドットの粗さは元画像に対する比率なので、縮小率に合わせて縮める
+      if (longSide > DRAFT_MAX_DIMENSION * DRAFT_THRESHOLD) {
+        const scale = DRAFT_MAX_DIMENSION / longSide;
+        const draftHandle = startConversion(source, {
+          ...params,
+          maxDimension: DRAFT_MAX_DIMENSION,
+          pixelSize: Math.max(2, Math.round(params.pixelSize * scale)),
+        });
+        handleRef.current = draftHandle;
+        try {
+          const draft = await draftHandle.promise;
+          if (!isCurrent()) return;
+          setState((s) => ({
+            ...s,
+            result: draft,
+            resultSource: source,
+            isDraft: true,
+            isConverting: true,
+            error: null,
+          }));
+        } catch {
+          // 下書きに失敗しても本番の変換は試す
+          if (!isCurrent()) return;
+        }
+      }
+
+      // 2. 本番: 元の解像度で仕上げる
       const handle = startConversion(source, params, (progress) => {
-        if (runId === runIdRef.current) setState((s) => ({ ...s, progress }));
+        if (isCurrent()) setState((s) => ({ ...s, progress }));
       });
       handleRef.current = handle;
 
       handle.promise
         .then((result) => {
-          if (runId !== runIdRef.current) return;
+          if (!isCurrent()) return;
           setState({
             result,
             resultSource: source,
             progress: null,
             isConverting: false,
+            isDraft: false,
             error: null,
             elapsedMs: Math.round(performance.now() - startedAt),
           });
         })
         .catch((e: unknown) => {
           // 新しい変換に置き換わった場合の中断は通知しない
-          if (runId !== runIdRef.current || e instanceof ConversionCancelledError) return;
+          if (!isCurrent() || e instanceof ConversionCancelledError) return;
           setState((s) => ({
             ...s,
             isConverting: false,

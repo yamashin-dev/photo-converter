@@ -3,7 +3,8 @@
 import { useState } from "react";
 import styles from "./ComparisonView.module.css";
 import type { ConversionProgress } from "@/engine/types";
-import { IconGrid } from "./Icon";
+import { IconGrid, IconZoom } from "./Icon";
+import { ZoomView } from "./ZoomView";
 
 const STAGE_LABEL: Record<ConversionProgress["stage"], string> = {
   decode: "画像を読み込み中",
@@ -25,7 +26,8 @@ const STAGE_LABEL: Record<ConversionProgress["stage"], string> = {
  * 呼び出し側で状態を判定して渡す。
  */
 export type PreviewState =
-  | "converting" // 変換中
+  | "converting" // 変換中（まだ何も出せない）
+  | "refining" // 下書きを見せながら、裏で本番の品質を作っている
   | "encoding" // 変換は終わり、表示用画像を書き出し中
   | "ready" // 表示できる
   | "cancelled" // 利用者が中止した
@@ -57,6 +59,7 @@ export function ComparisonView({
   // 画像が差し替わったときの初期化は、呼び出し側が key を変えて行う
   const [split, setSplit] = useState(50);
   const [showGrid, setShowGrid] = useState(false);
+  const [zoomOpen, setZoomOpen] = useState(false);
   const percent = Math.round((progress?.ratio ?? 0) * 100);
 
   return (
@@ -125,6 +128,14 @@ export function ComparisonView({
           </div>
         )}
 
+        {/* 下書きは見えているので画面は塞がず、隅で仕上げ中とだけ伝える */}
+        {state === "refining" && (
+          <p className={styles.refining} role="status">
+            <span className={styles.refiningDot} aria-hidden="true" />
+            仕上げ中
+          </p>
+        )}
+
         {/* 変換は終わっているので、失敗と誤解させない文言にする */}
         {state === "encoding" && (
           <div className={styles.progressLayer}>
@@ -169,8 +180,21 @@ export function ComparisonView({
           <IconGrid size={16} />
           グリッド
         </button>
+        <button
+          type="button"
+          className={styles.toolBtn}
+          onClick={() => setZoomOpen(true)}
+          disabled={!resultUrl}
+        >
+          <IconZoom size={16} />
+          拡大して見る
+        </button>
         <span className={styles.hint}>スライダーで変換前後を見比べられます</span>
       </div>
+
+      {zoomOpen && resultUrl && (
+        <ZoomView url={resultUrl} pixelated={pixelated} onClose={() => setZoomOpen(false)} />
+      )}
     </div>
   );
 }

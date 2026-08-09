@@ -90,6 +90,14 @@ export const IconChevron = (p: IconProps) => (
   </Svg>
 );
 
+export const IconZoom = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="11" cy="11" r="6" />
+    <path d="m20 20-4.5-4.5" />
+    <path d="M8.5 11h5M11 8.5v5" />
+  </Svg>
+);
+
 export const IconImage = (p: IconProps) => (
   <Svg {...p}>
     <path d="M4 5h16v14H4z" />

@@ -59,22 +59,32 @@ export function ControlPanel({
 
       {/* 1. スタイル: 最初の一手。ここだけで完結する人が多いので大きく置く */}
       <section className={styles.section}>
-        <h3 className={styles.legend}>スタイル</h3>
-        <div className={styles.styleList} role="radiogroup" aria-label="変換スタイル">
-          {STYLE_OPTIONS.map((o) => (
-            <button
-              key={o.value}
-              type="button"
-              role="radio"
-              aria-checked={params.style === o.value}
-              className={`${styles.styleCard} ${params.style === o.value ? styles.styleOn : ""}`}
-              onClick={() => onChange({ style: o.value })}
-            >
-              <span className={styles.styleName}>{o.label}</span>
-              <span className={styles.styleHint}>{o.hint}</span>
-            </button>
-          ))}
-        </div>
+        {/*
+          ラジオボタンと名乗るなら矢印キーで選べる必要がある。
+          自前で実装するより、ネイティブのradioに任せる方が確実
+        */}
+        <fieldset className={styles.styleFieldset}>
+          <legend className={styles.legend}>スタイル</legend>
+          <div className={styles.styleList}>
+            {STYLE_OPTIONS.map((o) => (
+              <label
+                key={o.value}
+                className={`${styles.styleCard} ${params.style === o.value ? styles.styleOn : ""}`}
+              >
+                <input
+                  type="radio"
+                  name={`${id}-style`}
+                  value={o.value}
+                  checked={params.style === o.value}
+                  onChange={() => onChange({ style: o.value })}
+                  className="srOnly"
+                />
+                <span className={styles.styleName}>{o.label}</span>
+                <span className={styles.styleHint}>{o.hint}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
       </section>
 
       <hr className="dottedRule" />

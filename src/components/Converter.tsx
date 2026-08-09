@@ -24,6 +24,7 @@ import {
   loadImageData,
   UnsupportedImageError,
 } from "@/lib/imageLoader";
+import { warmUpConverter } from "@/lib/converter";
 
 type Format = "image/png" | "image/webp";
 
@@ -96,15 +97,18 @@ export function Converter() {
    * 「変換中でない かつ 結果がない」だけで中止と判定すると、
    * 変換成功直後（書き出し待ち）やエラー時まで中止扱いになってしまう。
    */
-  const previewState: PreviewState = conversion.isConverting
-    ? "converting"
-    : conversion.error
-      ? "error"
-      : previewUrl
-        ? "ready"
-        : conversion.result
-          ? "encoding"
-          : "cancelled";
+  const previewState: PreviewState = conversion.error
+    ? "error"
+    : // 下書きが出ているなら、待たせずに見せて「仕上げ中」とだけ伝える
+      conversion.isConverting && previewUrl && conversion.isDraft
+      ? "refining"
+      : conversion.isConverting
+        ? "converting"
+        : previewUrl
+          ? "ready"
+          : conversion.result
+            ? "encoding"
+            : "cancelled";
 
   useEffect(() => {
     if (conversion.error) push("error", conversion.error);
@@ -140,6 +144,22 @@ export function Converter() {
 
   /** サンプルを押すたびに別の写真を出すための位置 */
   const sampleIndexRef = useRef(0);
+
+  // 写真を選ぶ前にWorkerを起こしておき、最初の1枚を待たせない
+  useEffect(() => warmUpConverter(), []);
+
+  /*
+   * 写真を選ぶと画面が入れ替わり、押していたボタンごと消える。
+   * そのままだとフォーカスが文書の先頭に戻ってしまうため、
+   * 新しく現れた領域へ移してキーボード操作を続けられるようにする。
+   */
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const hadSourceRef = useRef(false);
+  useEffect(() => {
+    const had = hadSourceRef.current;
+    hadSourceRef.current = !!source;
+    if (source && !had) workspaceRef.current?.focus();
+  }, [source]);
 
   // 共有起動の受け取りはマウント時に一度だけ走るため、最新の関数を参照で持つ
   const handleFileRef = useRef(handleFile);
@@ -221,13 +241,42 @@ export function Converter() {
     });
   }, []);
 
+  /**
+   * 写真を外して最初の画面に戻る。
+   * すぐ隣に無害なボタンが並んでいて誤って押しやすいため、
+   * 確認で操作を止める代わりに、取り消せるようにしてある。
+   */
   const reset = useCallback(() => {
+    const previous = source;
+    const previousName = sourceName;
+    const previousUrl = originalUrlRef.current;
+
     conversion.cancel();
     setSource(null);
-    replaceOriginalUrl(null);
-    // 変換結果側のURLはeffectのcleanupが解放する
+    // 取り消せる間はURLを解放しない（解放すると元画像を映せなくなる）
+    originalUrlRef.current = null;
+    setOriginalUrl(null);
     setResultUrl(null);
-  }, [conversion, replaceOriginalUrl]);
+
+    if (!previous) return;
+    push("info", "写真を外しました", {
+      label: "元に戻す",
+      onAct: () => {
+        setSource(previous);
+        setSourceName(previousName);
+        originalUrlRef.current = previousUrl;
+        setOriginalUrl(previousUrl);
+      },
+    });
+  }, [conversion, push, source, sourceName]);
+
+  // 取り消されずに次の写真へ進んだときは、残ったURLをここで解放する
+  useEffect(() => {
+    if (source || !originalUrl) return;
+    const stale = originalUrl;
+    const timer = setTimeout(() => URL.revokeObjectURL(stale), 30_000);
+    return () => clearTimeout(timer);
+  }, [source, originalUrl]);
 
   const download = useCallback(async () => {
     if (!conversion.result) return;
@@ -276,7 +325,7 @@ export function Converter() {
           <Showcase />
         </div>
       ) : (
-        <div className={styles.workspace}>
+        <div className={styles.workspace} ref={workspaceRef} tabIndex={-1}>
           <div className={styles.preview}>
             <ComparisonView
               key={originalUrl}

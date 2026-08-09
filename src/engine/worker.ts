@@ -15,6 +15,8 @@ import { convertIllustration } from "./styles/illustration";
 /** メインスレッド → Worker */
 export interface ConvertRequest {
   type: "convert";
+  /** どの依頼に対する返答かを照合するための番号（Workerを使い回すため必要） */
+  requestId: number;
   /** 転送可能にするため width/height/buffer で受け渡す */
   width: number;
   height: number;
@@ -25,9 +27,9 @@ export interface ConvertRequest {
 
 /** Worker → メインスレッド */
 export type ConvertResponse =
-  | { type: "progress"; progress: ConversionProgress }
-  | { type: "done"; width: number; height: number; buffer: ArrayBuffer }
-  | { type: "error"; message: string };
+  | { type: "progress"; requestId: number; progress: ConversionProgress }
+  | { type: "done"; requestId: number; width: number; height: number; buffer: ArrayBuffer }
+  | { type: "error"; requestId: number; message: string };
 
 function toImageBuffer(req: ConvertRequest): ImageBuffer {
   return {
@@ -45,17 +47,20 @@ self.onmessage = (event: MessageEvent<ConvertRequest>) => {
     (self as unknown as Worker).postMessage(msg, transfer ?? []);
   };
 
+  const { requestId } = req;
   try {
     const src = toImageBuffer(req);
     const convert =
       req.params.style === "illustration" ? convertIllustration : convertPixelArt;
     const result = convert(src, req.params, (progress) => {
-      post({ type: "progress", progress });
+      post({ type: "progress", requestId, progress });
     });
     // createImageで生成したバッファは常に通常のArrayBuffer（SharedArrayBufferではない）
     const buffer = result.data.buffer as ArrayBuffer;
-    post({ type: "done", width: result.width, height: result.height, buffer }, [buffer]);
+    post({ type: "done", requestId, width: result.width, height: result.height, buffer }, [
+      buffer,
+    ]);
   } catch (e) {
-    post({ type: "error", message: e instanceof Error ? e.message : String(e) });
+    post({ type: "error", requestId, message: e instanceof Error ? e.message : String(e) });
   }
 };
