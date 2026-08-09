@@ -167,16 +167,33 @@
   backdrop-filter: blur(2px);
 }
 
+/*
+ * 文字が写真の上に直接乗ると、写真の明るさ次第で読めなくなる。
+ * 不透明な面を敷いてコントラストを固定する。
+ */
 .progressBox {
-  width: min(300px, 78%);
+  width: min(320px, 84%);
+  padding: var(--space-16);
   text-align: center;
   line-height: 1.6;
+  background: var(--surface);
+  border: 2px solid var(--border-strong);
+  border-radius: 4px;
+  box-shadow: var(--shadow-panel);
 }
 
 .stage {
   font-size: 13px;
   letter-spacing: 0.08em;
   color: var(--text-muted);
+  margin-bottom: var(--space-12);
+}
+
+/* 失敗の理由。何が起きたか分かるよう本文色で読ませる */
+.detail {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text);
   margin-bottom: var(--space-12);
 }
 

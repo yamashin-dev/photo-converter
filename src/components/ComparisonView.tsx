@@ -19,13 +19,27 @@ const STAGE_LABEL: Record<ConversionProgress["stage"], string> = {
 };
 
 /**
+ * プレビューが今どの状態にあるか。
+ * 「変換中でない かつ 結果がない」を一括で中止扱いにすると、
+ * 変換成功直後（書き出し待ち）やエラー時まで「中止しました」と出てしまうため、
+ * 呼び出し側で状態を判定して渡す。
+ */
+export type PreviewState =
+  | "converting" // 変換中
+  | "encoding" // 変換は終わり、表示用画像を書き出し中
+  | "ready" // 表示できる
+  | "cancelled" // 利用者が中止した
+  | "error"; // 変換に失敗した
+
+/**
  * 元画像と変換結果の比較表示。
  * clip-pathで上に重ねた変換結果を切り出し、スライダーで境界を動かす。
  */
 export function ComparisonView({
   originalUrl,
   resultUrl,
-  isConverting,
+  state,
+  errorMessage,
   progress,
   onCancel,
   onRetry,
@@ -33,7 +47,8 @@ export function ComparisonView({
 }: {
   originalUrl: string;
   resultUrl: string | null;
-  isConverting: boolean;
+  state: PreviewState;
+  errorMessage: string | null;
   progress: ConversionProgress | null;
   onCancel: () => void;
   onRetry: () => void;
@@ -42,6 +57,7 @@ export function ComparisonView({
   // 画像が差し替わったときの初期化は、呼び出し側が key を変えて行う
   const [split, setSplit] = useState(50);
   const [showGrid, setShowGrid] = useState(false);
+  const percent = Math.round((progress?.ratio ?? 0) * 100);
 
   return (
     <div className={styles.wrap}>
@@ -84,7 +100,7 @@ export function ComparisonView({
           </>
         )}
 
-        {isConverting && (
+        {state === "converting" && (
           <div className={styles.progressLayer}>
             <div className={styles.progressBox}>
               <p className={styles.stage}>
@@ -94,14 +110,13 @@ export function ComparisonView({
               <div
                 className={styles.track}
                 role="progressbar"
+                aria-label="変換の進捗"
                 aria-valuemin={0}
                 aria-valuemax={100}
-                aria-valuenow={Math.round((progress?.ratio ?? 0) * 100)}
+                aria-valuenow={percent}
+                aria-valuetext={`${progress ? STAGE_LABEL[progress.stage] : "準備中"} ${percent}%`}
               >
-                <div
-                  className={styles.bar}
-                  style={{ width: `${Math.round((progress?.ratio ?? 0) * 100)}%` }}
-                />
+                <div className={styles.bar} style={{ width: `${percent}%` }} />
               </div>
               <button type="button" className={styles.cancel} onClick={onCancel}>
                 中止する
@@ -110,8 +125,29 @@ export function ComparisonView({
           </div>
         )}
 
+        {/* 変換は終わっているので、失敗と誤解させない文言にする */}
+        {state === "encoding" && (
+          <div className={styles.progressLayer}>
+            <div className={styles.progressBox}>
+              <p className={styles.stage}>プレビューを準備しています</p>
+            </div>
+          </div>
+        )}
+
+        {state === "error" && (
+          <div className={styles.progressLayer}>
+            <div className={styles.progressBox}>
+              <p className={styles.stage}>変換できませんでした</p>
+              {errorMessage && <p className={styles.detail}>{errorMessage}</p>}
+              <button type="button" className={styles.retry} onClick={onRetry}>
+                もう一度試す
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* 中止したままだと何も出せないので、やり直す導線を残す */}
-        {!isConverting && !resultUrl && (
+        {state === "cancelled" && (
           <div className={styles.progressLayer}>
             <div className={styles.progressBox}>
               <p className={styles.stage}>変換を中止しました</p>

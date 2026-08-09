@@ -2,7 +2,8 @@
   position: fixed;
   left: var(--space-16);
   right: var(--space-16);
-  bottom: var(--space-16);
+  /* iPhoneのホームバーに重ならないよう退避する */
+  bottom: calc(var(--space-16) + env(safe-area-inset-bottom));
   z-index: 50;
   display: flex;
   align-items: center;

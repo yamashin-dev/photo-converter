@@ -73,11 +73,17 @@ export function DropZone({
         if (!disabled) handleFiles(e.dataTransfer.files);
       }}
     >
+      {/*
+        opacity:0 では要素はフォーカス可能なまま残る。
+        名前のない不可視要素にタブが止まらないよう明示的に外す
+      */}
       <input
         ref={inputRef}
         type="file"
         accept={ACCEPTED_TYPES}
         className={styles.input}
+        tabIndex={-1}
+        aria-hidden="true"
         onChange={(e) => {
           handleFiles(e.target.files);
           // 同じファイルを選び直せるようにする

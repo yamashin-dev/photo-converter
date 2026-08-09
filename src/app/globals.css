@@ -14,17 +14,27 @@
   --surface-sunken: #e9e5d8;
   --border: #d6d0be;
   --border-strong: #23262f;
+  /*
+   * 入力欄・チップ・スイッチなど「操作できるもの」の輪郭。
+   * 装飾的な区切り線（--border）と分け、部品だけ3:1を満たす濃さにする。
+   */
+  --border-control: #8f8a78;
 
   /* 文字 */
   --text: #23262f;
   --text-muted: #5d6070;
-  --text-faint: #8b8e9c;
+  /* 説明文は操作の理解に必要なので、補助的でも4.5:1を確保する */
+  --text-faint: #6e7280;
 
-  /* アクセント（琥珀）— 使用は CTA・アクティブ状態・強調の3箇所まで */
-  --accent: #c97b1f;
-  --accent-hover: #a86414;
+  /*
+   * アクセント（琥珀）— 使用は CTA・アクティブ状態・強調の3箇所まで。
+   * 白文字を乗せる面としても、背景の上の文字色としても4.5:1を満たす濃さにしている
+   * （以前の #c97b1f は 3.26:1 / 2.88:1 で不足していた）。
+   */
+  --accent: #98590f;
+  --accent-hover: #7d4a0e;
   --accent-contrast: #fffdf7;
-  --accent-soft: rgba(201, 123, 31, 0.12);
+  --accent-soft: rgba(152, 89, 15, 0.12);
 
   --danger: #b3372c;
 
@@ -46,7 +56,7 @@
   /* 影 — 用途別 */
   --shadow-panel: 0 1px 2px rgba(35, 38, 47, 0.06), 0 6px 18px rgba(35, 38, 47, 0.07);
   --shadow-bevel: 3px 3px 0 var(--border-strong);
-  --shadow-accent: 0 6px 16px rgba(201, 123, 31, 0.28);
+  --shadow-accent: 0 6px 16px rgba(152, 89, 15, 0.28);
 
   --header-h: 56px;
   color-scheme: light;
@@ -58,10 +68,12 @@
   --surface-sunken: #0d0f16;
   --border: #2b2f3d;
   --border-strong: #454a5e;
+  --border-control: #767c93;
 
   --text: rgba(255, 255, 255, 0.88);
   --text-muted: rgba(255, 255, 255, 0.56);
-  --text-faint: rgba(255, 255, 255, 0.32);
+  /* 説明文が読める濃さを確保する（0.32では2.89:1しかなかった） */
+  --text-faint: rgba(255, 255, 255, 0.5);
 
   --accent: #e8a33d;
   --accent-hover: #f3b65a;

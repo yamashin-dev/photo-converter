@@ -113,7 +113,7 @@
   letter-spacing: 0.04em;
   background: var(--surface-sunken);
   color: var(--text-muted);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: 3px;
   transition:
     color 120ms ease-out,
@@ -140,16 +140,35 @@
   font-size: 14px;
   color: var(--text);
   background-color: var(--surface-sunken);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238b8e9c' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  border: 1px solid var(--border);
+  /* 矢印は色を直書きせず、文字色を引き継がせてテーマに追随させる */
+  background-image: none;
+  border: 1px solid var(--border-control);
   border-radius: var(--r-button);
   appearance: none;
 }
 
 .select:hover {
   border-color: var(--border-strong);
+}
+
+/* selectを包み、矢印を currentColor のマスクで描く */
+.selectWrap {
+  position: relative;
+  display: block;
+}
+
+.selectWrap::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  background-color: var(--text-muted);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat center / contain;
 }
 
 .range {
@@ -162,14 +181,14 @@
 .range::-webkit-slider-runnable-track {
   height: 6px;
   background: var(--surface-sunken);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: 2px;
 }
 
 .range::-moz-range-track {
   height: 6px;
   background: var(--surface-sunken);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: 2px;
 }
 

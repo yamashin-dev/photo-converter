@@ -77,20 +77,22 @@ export function ControlPanel({
           <label className={styles.label} htmlFor={`${id}-palette`}>
             色づかい
           </label>
-          <select
-            id={`${id}-palette`}
-            className={styles.select}
-            value={params.paletteType}
-            onChange={(e) =>
-              onChange({ paletteType: e.target.value as ConversionParams["paletteType"] })
-            }
-          >
-            {PALETTE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+          <span className={styles.selectWrap}>
+            <select
+              id={`${id}-palette`}
+              className={styles.select}
+              value={params.paletteType}
+              onChange={(e) =>
+                onChange({ paletteType: e.target.value as ConversionParams["paletteType"] })
+              }
+            >
+              {PALETTE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </span>
         </div>
 
         {params.paletteType === "auto" && (
@@ -138,24 +140,26 @@ export function ControlPanel({
               <label className={styles.label} htmlFor={`${id}-dither`}>
                 ディザリング
               </label>
-              <select
-                id={`${id}-dither`}
-                className={styles.select}
-                value={params.dithering}
-                onChange={(e) =>
-                  onChange({ dithering: e.target.value as ConversionParams["dithering"] })
-                }
-              >
-                {DITHERING_GROUPS.map((g) => (
-                  <optgroup key={g.label} label={g.label}>
-                    {g.options.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
+              <span className={styles.selectWrap}>
+                <select
+                  id={`${id}-dither`}
+                  className={styles.select}
+                  value={params.dithering}
+                  onChange={(e) =>
+                    onChange({ dithering: e.target.value as ConversionParams["dithering"] })
+                  }
+                >
+                  {DITHERING_GROUPS.map((g) => (
+                    <optgroup key={g.label} label={g.label}>
+                      {g.options.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </span>
               <p className={styles.hint}>少ない色数でも階調を出す点描のような処理です</p>
             </div>
 
@@ -164,20 +168,22 @@ export function ControlPanel({
                 <label className={styles.label} htmlFor={`${id}-extract`}>
                   色の選び方
                 </label>
-                <select
-                  id={`${id}-extract`}
-                  className={styles.select}
-                  value={params.extractMethod}
-                  onChange={(e) =>
-                    onChange({ extractMethod: e.target.value as ConversionParams["extractMethod"] })
-                  }
-                >
-                  {EXTRACT_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label} — {o.hint}
-                    </option>
-                  ))}
-                </select>
+                <span className={styles.selectWrap}>
+                  <select
+                    id={`${id}-extract`}
+                    className={styles.select}
+                    value={params.extractMethod}
+                    onChange={(e) =>
+                      onChange({ extractMethod: e.target.value as ConversionParams["extractMethod"] })
+                    }
+                  >
+                    {EXTRACT_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label} — {o.hint}
+                      </option>
+                    ))}
+                  </select>
+                </span>
               </div>
             )}
 
@@ -185,20 +191,22 @@ export function ControlPanel({
               <label className={styles.label} htmlFor={`${id}-outline`}>
                 輪郭線
               </label>
-              <select
-                id={`${id}-outline`}
-                className={styles.select}
-                value={params.outline}
-                onChange={(e) =>
-                  onChange({ outline: e.target.value as ConversionParams["outline"] })
-                }
-              >
-                {OUTLINE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
+              <span className={styles.selectWrap}>
+                <select
+                  id={`${id}-outline`}
+                  className={styles.select}
+                  value={params.outline}
+                  onChange={(e) =>
+                    onChange({ outline: e.target.value as ConversionParams["outline"] })
+                  }
+                >
+                  {OUTLINE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </span>
             </div>
 
             <div className={styles.field}>

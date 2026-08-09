@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import styles from "./Converter.module.css";
 import { DropZone } from "./DropZone";
 import { ControlPanel } from "./ControlPanel";
-import { ComparisonView } from "./ComparisonView";
+import { ComparisonView, type PreviewState } from "./ComparisonView";
 import { ToastList, useToasts } from "./Toast";
 import { IconDownload, IconLink, IconReset } from "./Icon";
 import { trackEvent } from "./Analytics";
@@ -73,20 +73,46 @@ export function Converter() {
         }
         setResultUrl(url);
       })
-      .catch(() => push("error", "プレビューの生成に失敗しました"));
+      .catch(() =>
+        push("error", "プレビューを表示できませんでした。もう一度お試しください")
+      );
 
     return () => {
       cancelled = true;
-      if (created) URL.revokeObjectURL(created);
+      if (created) {
+        URL.revokeObjectURL(created);
+        // 解放したURLを画像が参照し続けないよう、表示側からも外す
+        setResultUrl((prev) => (prev === created ? null : prev));
+      }
     };
   }, [conversion.result, push]);
 
   // 結果が消えた瞬間に古いプレビューを映さない（stateを増やさず導出する）
   const previewUrl = conversion.result ? resultUrl : null;
 
+  /**
+   * プレビューの状態。
+   * 「変換中でない かつ 結果がない」だけで中止と判定すると、
+   * 変換成功直後（書き出し待ち）やエラー時まで中止扱いになってしまう。
+   */
+  const previewState: PreviewState = conversion.isConverting
+    ? "converting"
+    : conversion.error
+      ? "error"
+      : previewUrl
+        ? "ready"
+        : conversion.result
+          ? "encoding"
+          : "cancelled";
+
   useEffect(() => {
     if (conversion.error) push("error", conversion.error);
   }, [conversion.error, push]);
+
+  // 画面の変化が見えない利用者にも、変換が終わったことを伝える
+  const liveMessage = conversion.result
+    ? `変換が完了しました。${conversion.result.width}かける${conversion.result.height}ピクセル。保存できます`
+    : "";
 
   const handleFile = useCallback(
     async (file: File) => {
@@ -229,7 +255,8 @@ export function Converter() {
               key={originalUrl}
               originalUrl={originalUrl!}
               resultUrl={previewUrl}
-              isConverting={conversion.isConverting}
+              state={previewState}
+              errorMessage={conversion.error}
               progress={conversion.progress}
               onCancel={conversion.cancel}
               onRetry={conversion.retry}
@@ -280,11 +307,13 @@ export function Converter() {
         </div>
       )}
 
-      {loading && (
-        <p className={styles.loading} role="status">
-          画像を読み込んでいます…
-        </p>
-      )}
+      {/* 要素ごと差し込むと読み上げが発火しないことがあるため、器は常に置いておく */}
+      <p className={styles.loading} role="status" data-visible={loading || undefined}>
+        {loading ? "画像を読み込んでいます…" : ""}
+      </p>
+      <p className="srOnly" role="status">
+        {liveMessage}
+      </p>
 
       <ToastList toasts={toasts} onDismiss={dismiss} />
     </>

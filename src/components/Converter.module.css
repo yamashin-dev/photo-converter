@@ -108,7 +108,7 @@
   font-size: 13px;
   color: var(--text);
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: var(--r-button);
 }
 
@@ -122,7 +122,7 @@
   letter-spacing: 0.03em;
   background: transparent;
   color: var(--text-muted);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: var(--r-button);
   transition:
     color 140ms ease-out,
@@ -142,18 +142,32 @@
   color: var(--text-faint);
 }
 
+/*
+ * 読み上げ用の器は常設し、見た目だけを出し入れする
+ * （role=status の要素ごと差し込むと通知が発火しないことがある）。
+ */
 .loading {
   position: fixed;
   left: 50%;
-  bottom: var(--space-32);
+  /* iPhoneのホームバーに重ならないよう退避する */
+  bottom: calc(var(--space-32) + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   padding: 10px 20px;
+  margin: 0;
   font-size: 13px;
   background: var(--surface);
   border: 1px solid var(--border-strong);
   border-radius: var(--r-pill);
   box-shadow: var(--shadow-panel);
   z-index: 30;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 160ms ease-out;
+}
+
+.loading[data-visible] {
+  opacity: 1;
+  visibility: visible;
 }
 
 @media (max-width: 899px) {
