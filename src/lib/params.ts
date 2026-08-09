@@ -21,12 +21,18 @@ export const DEFAULT_PARAMS: ConversionParams = {
   removeShadow: true,
 };
 
+/**
+ * 手描き風スタイルの初期値。旧convert-photo-drawingのUI初期値に合わせている
+ * （色数8・ディザなし・彩度100%・アウトラインなし・コントラスト強化なし）。
+ * ここを変えると「前と印象が違う」という形で効いてくるので、
+ * 変更するときは旧版の見た目と比べてから決めること。
+ */
 export const ILLUSTRATION_DEFAULTS: Partial<ConversionParams> = {
   numColors: 8,
   paletteType: "auto",
   extractMethod: "kmeans",
-  outline: "soft",
-  saturation: 90,
+  outline: "none",
+  saturation: 100,
 };
 
 export const STYLE_OPTIONS: { value: ConversionStyle; label: string; hint: string }[] = [

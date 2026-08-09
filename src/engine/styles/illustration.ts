@@ -1,5 +1,5 @@
 import type { ConversionParams, Palette, PaletteType, ProgressCallback } from "../types";
-import { DEFAULT_SEED } from "../types";
+import { DEFAULT_SEED, DEFAULT_MAX_DIMENSION } from "../types";
 import type { ImageBuffer } from "../image";
 import { resizeNearest } from "../image";
 import { FIXED_PALETTES } from "../palettes/fixed";
@@ -20,10 +20,14 @@ import { sanitizeParams } from "./sanitize";
 
 /**
  * 手描き風イラスト変換の処理解像度上限。
- * bilateralフィルタ（9x9円形近傍）が全ピクセルに走るため、
- * ドット絵スタイルより低い上限にする（旧16bit smoothの1200px制限と同水準）。
+ *
+ * ここを下げると「ドットの粗さ」の意味が変わってしまう。
+ * pixelSize は元画像に対する縮小率なので、先に画像を縮めると
+ * 同じ pixelSize でも仕上がりが粗くなり、細部が失われる
+ * （1600pxに制限していたとき、12MPの写真で輪郭が明らかにブロック化した）。
+ * 旧実装（Python版）は縮小せず元サイズのまま処理していたため、それに合わせる。
  */
-const ILLUSTRATION_MAX_DIMENSION = 1600;
+const ILLUSTRATION_MAX_DIMENSION = DEFAULT_MAX_DIMENSION;
 
 /** LAB経由でLチャンネルだけを処理するヘルパー */
 function processLightness(
