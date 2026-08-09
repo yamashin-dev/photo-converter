@@ -132,6 +132,21 @@ describe("アウトライン", () => {
     }
     expect(hasGray).toBe(true);
   });
+
+  it("addSoftOutline: 画面全体を灰色に沈めない", () => {
+    // 旧実装は色差40の固定閾値で、減色後の画像では2割以上が灰色になっていた
+    for (const size of [64, 128, 200]) {
+      const img = createTwoToneImage(size, size, [230, 220, 200], [60, 90, 70]);
+      addSoftOutlineInPlace(img);
+      let n = 0;
+      for (let i = 0; i < img.data.length; i += 4) {
+        if (img.data[i] === 50 && img.data[i + 1] === 50 && img.data[i + 2] === 50) n++;
+      }
+      const ratio = n / (img.data.length / 4);
+      expect(ratio).toBeGreaterThan(0);
+      expect(ratio).toBeLessThan(0.1);
+    }
+  });
 });
 
 describe("resizeNearest", () => {

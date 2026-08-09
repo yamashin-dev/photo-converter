@@ -69,7 +69,7 @@ export function convertPixelArt(
 
   // 減色すると境界が階段状になりエッジ判定が鈍るため、
   // 輪郭を引く場合は減色前の階調を取っておく
-  const tonal = params.outline === "auto" ? cloneImage(small) : null;
+  const tonal = params.outline !== "none" ? cloneImage(small) : null;
 
   // 4. パレット最近傍変換（色キャッシュ付き）
   onProgress?.({ ratio: 0.4, stage: "quantize" });
@@ -79,7 +79,7 @@ export function convertPixelArt(
   if (params.outline !== "none") {
     onProgress?.({ ratio: 0.6, stage: "outline" });
     if (params.outline === "soft") {
-      addSoftOutlineInPlace(small);
+      addSoftOutlineInPlace(small, tonal ?? small);
     } else {
       addOutlineInPlace(small, params.pixelSize, tonal ?? small);
     }

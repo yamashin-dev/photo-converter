@@ -115,33 +115,29 @@ export function detectEdges(
   return edges;
 }
 
-/** 輪郭として黒で塗る画素の割合の目安 */
+/** 輪郭として塗る画素の割合の目安（はっきりした線 / やわらかい線） */
 const OUTLINE_COVERAGE = 0.055;
+const SOFT_OUTLINE_COVERAGE = 0.04;
 
 /**
- * 自動アウトライン（ドット絵スタイル用）。
+ * 勾配の強い順に、画像全体の一定割合だけを指定色で塗る。
  *
- * 勾配の強い順に、画像全体の一定割合だけを輪郭として塗る。
- *
- * 旧実装は固定閾値（画像特性で20〜60に調整）で判定していたが、
+ * 旧実装は固定閾値（色差40、または画像特性で20〜60に調整）で判定していたが、
  * この方式は減色後の画像と相性が悪い。減色後は「広い平坦域＋急な段差」に
- * なるため平均コントラストが低く出て、「低コントラストだから閾値を下げる」
- * 分岐が働き、色の境界が軒並み輪郭と判定されて画面が黒く潰れていた
- * （旧実装でも pixelSize=16 で画素の68%が黒になっていた）。
- * 割合で決めれば、どんな画像でも線の量が一定に保たれる。
- *
- * @param edgeSource エッジ判定に使う画像。減色前の階調が残ったものを渡すと
- *                   境界がより正確に出る。省略時は描画対象と同じ画像を使う
+ * なるため、ドットの境目という境目がすべて輪郭と判定され、
+ * 画面全体が黒や灰色に沈んでいた
+ * （旧実装では pixelSize=16 で画素の68%が黒、やわらかい線でも25%が灰色）。
+ * 割合で決めれば、どんな画像・どのドットサイズでも線の量が一定に保たれる。
  */
-export function addOutlineInPlace(
+function paintEdgesInPlace(
   image: ImageBuffer,
-  pixelSize: number,
-  edgeSource: ImageBuffer = image
+  edgeSource: ImageBuffer,
+  coverage: number,
+  color: readonly [number, number, number]
 ): void {
   const { width, height, data } = image;
   const magnitude = sobelMagnitude(edgeSource);
 
-  // 勾配強度のヒストグラムから、上位 OUTLINE_COVERAGE 分の閾値を求める
   const BINS = 512;
   let maxMag = 0;
   for (const m of magnitude) if (m > maxMag) maxMag = m;
@@ -151,7 +147,7 @@ export function addOutlineInPlace(
   for (const m of magnitude) {
     hist[Math.min(BINS - 1, Math.floor((m / maxMag) * (BINS - 1)))]++;
   }
-  const target = Math.floor(magnitude.length * OUTLINE_COVERAGE);
+  const target = Math.floor(magnitude.length * coverage);
   let acc = 0;
   let bin = BINS - 1;
   while (bin > 0 && acc + hist[bin] <= target) {
@@ -170,18 +166,32 @@ export function addOutlineInPlace(
     threshold = (bin / (BINS - 1)) * maxMag;
   }
 
-  // ドットが粗いほど線も太くしたくなるが、小さい画像で2pxは潰れるため1px固定
-  void pixelSize;
-
+  const [r, g, b] = color;
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
       if (magnitude[y * width + x] < threshold) continue;
       const idx = (y * width + x) * 4;
-      data[idx] = 0;
-      data[idx + 1] = 0;
-      data[idx + 2] = 0;
+      data[idx] = r;
+      data[idx + 1] = g;
+      data[idx + 2] = b;
     }
   }
+}
+
+/**
+ * はっきりした輪郭（黒線）。
+ *
+ * @param edgeSource エッジ判定に使う画像。減色前の階調が残ったものを渡すと
+ *                   境界がより正確に出る。省略時は描画対象と同じ画像を使う
+ */
+export function addOutlineInPlace(
+  image: ImageBuffer,
+  pixelSize: number,
+  edgeSource: ImageBuffer = image
+): void {
+  // ドットが粗いほど線も太くしたくなるが、小さい画像で2pxは潰れるため1px固定
+  void pixelSize;
+  paintEdgesInPlace(image, edgeSource, OUTLINE_COVERAGE, [0, 0, 0]);
 }
 
 /** Sobelの勾配強度マップ（境界1画素は0のまま） */
@@ -231,37 +241,12 @@ export function addDoGOutlineInPlace(image: ImageBuffer): void {
 }
 
 /**
- * ソフトアウトライン（手描き風用の軽い縁取り。旧addSoftOutline）。
- * 上下左右の色差が閾値40を超えるピクセルを暗いグレー(50,50,50)にする。
+ * やわらかい輪郭（暗いグレーの線）。
+ * 黒線より控えめな量にして、輪郭を主張させすぎないようにする。
  */
-export function addSoftOutlineInPlace(image: ImageBuffer): void {
-  const { width, height, data } = image;
-  const edges: number[] = [];
-
-  for (let y = 1; y < height - 1; y++) {
-    for (let x = 1; x < width - 1; x++) {
-      const ci = (y * width + x) * 4;
-      let maxDiff = 0;
-      const neighbors = [
-        (y * width + x - 1) * 4,
-        (y * width + x + 1) * 4,
-        ((y - 1) * width + x) * 4,
-        ((y + 1) * width + x) * 4,
-      ];
-      for (const ni of neighbors) {
-        const diff =
-          Math.abs(data[ci] - data[ni]) +
-          Math.abs(data[ci + 1] - data[ni + 1]) +
-          Math.abs(data[ci + 2] - data[ni + 2]);
-        if (diff > maxDiff) maxDiff = diff;
-      }
-      if (maxDiff > 40) edges.push(ci);
-    }
-  }
-
-  for (const idx of edges) {
-    data[idx] = 50;
-    data[idx + 1] = 50;
-    data[idx + 2] = 50;
-  }
+export function addSoftOutlineInPlace(
+  image: ImageBuffer,
+  edgeSource: ImageBuffer = image
+): void {
+  paintEdgesInPlace(image, edgeSource, SOFT_OUTLINE_COVERAGE, [50, 50, 50]);
 }

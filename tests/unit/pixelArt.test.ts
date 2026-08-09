@@ -81,17 +81,19 @@ describe("convertPixelArt: 実行時データのサニタイズ（旧PHPのフ�
     }
   });
 
-  it("outline='auto'はどのドットサイズでも画面を黒く潰さない", () => {
-    // 旧実装ではpixelSizeが大きいほど黒が増え、16では画素の68%が黒だった
+  it.each([
+    ["auto", [0, 0, 0]],
+    ["soft", [50, 50, 50]],
+  ] as const)("outline='%s'はどのドットサイズでも画面を塗り潰さない", (outline, [r, g, b]) => {
+    // 旧実装ではpixelSizeが大きいほど線が増え、autoは68%が黒、softは25%が灰色になっていた
     const src = createGradientImage(256, 192);
     for (const pixelSize of [2, 4, 8, 12, 16]) {
-      const out = convertPixelArt(src, baseParams({ outline: "auto", pixelSize }));
-      let black = 0;
+      const out = convertPixelArt(src, baseParams({ outline, pixelSize }));
+      let painted = 0;
       for (let i = 0; i < out.data.length; i += 4) {
-        if (out.data[i] === 0 && out.data[i + 1] === 0 && out.data[i + 2] === 0) black++;
+        if (out.data[i] === r && out.data[i + 1] === g && out.data[i + 2] === b) painted++;
       }
-      const ratio = black / (out.data.length / 4);
-      expect(ratio).toBeLessThan(0.15);
+      expect(painted / (out.data.length / 4)).toBeLessThan(0.15);
     }
   });
 
