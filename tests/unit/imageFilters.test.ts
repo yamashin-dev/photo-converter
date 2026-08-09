@@ -78,6 +78,18 @@ describe("ガウシアンブラー", () => {
     }
   });
 
+  it("sigma<=0かつksize<=7はOpenCVの固定二項カーネルを使う", () => {
+    // OpenCVのsmall_gaussian_tabと一致すること（レビュー指摘の回帰防止）
+    expect([...gaussianKernel(3, 0)]).toEqual([0.25, 0.5, 0.25]);
+    expect([...gaussianKernel(5, 0)]).toEqual([0.0625, 0.25, 0.375, 0.25, 0.0625]);
+    expect([...gaussianKernel(7, 0)]).toEqual([
+      0.03125, 0.109375, 0.21875, 0.28125, 0.21875, 0.109375, 0.03125,
+    ]);
+    // ksize>7 または sigma>0 はσ式（固定表を使わない）
+    expect(gaussianKernel(9, 0)[4]).not.toBe(0.375);
+    expect([...gaussianKernel(5, 1.0)]).not.toEqual([0.0625, 0.25, 0.375, 0.25, 0.0625]);
+  });
+
   it("単色画像は変化しない", () => {
     const img = createFlatImage(16, 16, 100, 150, 200);
     const out = gaussianBlurImage(img, 9, 0);

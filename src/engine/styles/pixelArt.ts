@@ -3,7 +3,7 @@ import { DEFAULT_SEED, DEFAULT_MAX_DIMENSION } from "../types";
 import type { ImageBuffer } from "../image";
 import { resizeNearest } from "../image";
 import { FIXED_PALETTES } from "../palettes/fixed";
-import { extractPalette } from "../palettes/extract";
+import { extractPalette, PALETTE_SEED } from "../palettes/extract";
 import { applyPaletteInPlace } from "../quantize";
 import { applySaturationInPlace } from "../filters/saturation";
 import { addOutlineInPlace, addSoftOutlineInPlace } from "../filters/outline";
@@ -48,10 +48,11 @@ export function convertPixelArt(
   }
 
   // 1. パレット決定（autoは元画像から抽出、固定は定義済み16色）
+  // パレットはseedに依存させない（seedはディザのパターン振り直し専用）
   onProgress?.({ ratio: 0.05, stage: "palette" });
   const palette: Palette =
     params.paletteType === "auto"
-      ? extractPalette(source, params.numColors, params.extractMethod, params.seed ?? DEFAULT_SEED)
+      ? extractPalette(source, params.numColors, params.extractMethod, PALETTE_SEED)
       : FIXED_PALETTES[params.paletteType as Exclude<PaletteType, "auto">];
 
   // 2. ピクセルサイズ分の1に縮小（ニアレストでカクカクに）

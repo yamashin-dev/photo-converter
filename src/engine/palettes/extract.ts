@@ -192,11 +192,20 @@ export function extractLuminance(image: ImageBuffer, numColors: number): Palette
   return padToExact(palette, numColors);
 }
 
+/**
+ * パレット抽出専用の固定シード。
+ *
+ * パレットは「画像 + 色数 + 抽出方式」だけで決まる純粋な関数であるべきで、
+ * ConversionParams.seed（ディザのパターンを振り直すためのもの）に
+ * 連動して色が変わってはいけない。K-meansの決定性はこの固定値で担保する。
+ */
+export const PALETTE_SEED = 20260809;
+
 export function extractPalette(
   image: ImageBuffer,
   numColors: number,
   method: ExtractMethod,
-  seed = 42
+  seed = PALETTE_SEED
 ): Palette {
   // methodは実行時データ（保存設定等）として型定義外の値が来うるため、
   // 旧PHP実装同様に未知の値はデフォルト方式へフォールバックする

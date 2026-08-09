@@ -1,3 +1,5 @@
+import { reflect101 } from "./convolution";
+
 /**
  * ヒストグラム系のコントラスト強調（単一チャンネル 0-255）。
  * CLAHE（タイル分割適応ヒストグラム均等化）と equalizeHist。
@@ -34,6 +36,11 @@ export function equalizeHistChannel(
  * CLAHE（Contrast Limited Adaptive Histogram Equalization）。
  * clipLimitはOpenCV同様「タイル面積比のクリップ上限」:
  * 実クリップ値 = max(1, clipLimit * tileArea / 256)
+ *
+ * タイル分割は OpenCV と同じく「画像をタイル数の倍数へパディングしてから等分」する。
+ * ceilだけで区切ると端に面積0のタイルが生まれ、そのLUTが全0になって
+ * 補間時に端の画素を黒方向へ引っ張ってしまう（暗い縁が出る）ため。
+ * パディング分の画素は境界反射（REFLECT_101）で補う。
  */
 export function claheChannel(
   channel: Uint8Array | Uint8ClampedArray,
@@ -45,6 +52,8 @@ export function claheChannel(
 ): void {
   const tileW = Math.ceil(width / tilesX);
   const tileH = Math.ceil(height / tilesY);
+  // 全タイルが同一面積を持つ（境界外は反射で補うため0にならない）
+  const area = tileW * tileH;
 
   // 各タイルのLUTを構築
   const luts: Uint8Array[] = [];
@@ -52,14 +61,12 @@ export function claheChannel(
     for (let tx = 0; tx < tilesX; tx++) {
       const x0 = tx * tileW;
       const y0 = ty * tileH;
-      const x1 = Math.min(x0 + tileW, width);
-      const y1 = Math.min(y0 + tileH, height);
-      const area = (x1 - x0) * (y1 - y0);
 
       const hist = new Float64Array(256);
-      for (let y = y0; y < y1; y++) {
-        for (let x = x0; x < x1; x++) {
-          hist[channel[y * width + x]]++;
+      for (let y = y0; y < y0 + tileH; y++) {
+        const sy = reflect101(y, height);
+        for (let x = x0; x < x0 + tileW; x++) {
+          hist[channel[sy * width + reflect101(x, width)]]++;
         }
       }
 

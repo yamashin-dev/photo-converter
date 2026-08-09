@@ -63,16 +63,41 @@ describe("前処理（手描き風）", () => {
     for (let i = 0; i < dark.data.length; i += 4) {
       dark.data.set([40, 40, 40, 255], i);
     }
-    const out = _internals.preprocess(dark, false);
+    const out = _internals.preprocess(dark, false, true);
     // ガンマ0.4で暗部（L≈40相当）は大きく明るくなる
     expect(out.data[0]).toBeGreaterThan(100);
   });
 
+  it("removeShadow=falseでは暗部が持ち上がらない（レビュー指摘の回帰防止）", () => {
+    const dark = createImage(16, 16);
+    for (let i = 0; i < dark.data.length; i += 4) {
+      dark.data.set([40, 40, 40, 255], i);
+    }
+    const out = _internals.preprocess(dark, false, false);
+    expect(out.data[0]).toBeLessThan(60);
+  });
+
   it("contrast=trueでも安全に動作し、falseと異なる出力になる", () => {
     const src = createGradientImage(32, 32);
-    const off = _internals.preprocess(src, false);
-    const on = _internals.preprocess(src, true);
+    const off = _internals.preprocess(src, false, true);
+    const on = _internals.preprocess(src, true, true);
     expect(imageHash(off)).not.toBe(imageHash(on));
+  });
+
+  it("CLAHEが端に暗い縁を作らない（空タイル問題の回帰防止）", () => {
+    // 41pxは ceil(41/8)=6 で tx=7 が空タイルになるサイズ
+    const size = 41;
+    const flat = createImage(size, size);
+    for (let i = 0; i < flat.data.length; i += 4) {
+      flat.data.set([133, 133, 133, 255], i);
+    }
+    const out = _internals.preprocess(flat, true, false);
+    const at = (x: number, y: number) => out.data[(y * size + x) * 4];
+    const center = at(20, 20);
+    // 右端・下端・右下角が中央から大きく外れない（旧実装では黒方向に引っ張られた）
+    for (const [x, y] of [[size - 1, 20], [20, size - 1], [size - 1, size - 1]] as const) {
+      expect(Math.abs(at(x, y) - center)).toBeLessThanOrEqual(8);
+    }
   });
 });
 
@@ -128,6 +153,27 @@ describe("convertIllustration", () => {
       return n;
     };
     expect(countBlack(withOutline)).toBeGreaterThan(countBlack(without));
+  });
+
+  it("removeShadowのON/OFFで出力が変わる（トグルが効いている）", () => {
+    const src = createGradientImage(48, 48);
+    const on = convertIllustration(src, baseParams({ removeShadow: true }));
+    const off = convertIllustration(src, baseParams({ removeShadow: false }));
+    expect(imageHash(on)).not.toBe(imageHash(off));
+  });
+
+  it("extractMethodの違いが出力に反映される（旧版はK-means固定だった）", () => {
+    const src = createGradientImage(48, 48);
+    const kmeans = convertIllustration(src, baseParams({ extractMethod: "kmeans" }));
+    const median = convertIllustration(src, baseParams({ extractMethod: "mediancut" }));
+    expect(imageHash(kmeans)).not.toBe(imageHash(median));
+  });
+
+  it("seedを変えてもパレットは変わらない（seedはディザ専用）", () => {
+    const src = createGradientImage(48, 48);
+    const a = convertIllustration(src, baseParams({ seed: 1, dithering: "none" }));
+    const b = convertIllustration(src, baseParams({ seed: 999, dithering: "none" }));
+    expect(imageHash(a)).toBe(imageHash(b));
   });
 
   it("進捗が単調増加で1.0に到達する", () => {

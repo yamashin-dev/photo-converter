@@ -6,8 +6,8 @@ import { cloneImage } from "../image";
  * 境界は BORDER_REFLECT_101（gfedcb|abcdefgh|gfedcba、OpenCVのデフォルト）。
  */
 
-/** 境界反射（REFLECT_101） */
-function reflect101(i: number, size: number): number {
+/** 境界反射（REFLECT_101）: gfedcb|abcdefgh|gfedcba */
+export function reflect101(i: number, size: number): number {
   if (size === 1) return 0;
   while (i < 0 || i >= size) {
     if (i < 0) i = -i;
@@ -17,10 +17,26 @@ function reflect101(i: number, size: number): number {
 }
 
 /**
+ * OpenCVのgetGaussianKernelが sigma<=0 かつ ksize<=7 のときに使う固定二項カーネル
+ * （small_gaussian_tab）。σ式で近似すると値がわずかにずれるため、実表を持つ。
+ */
+const SMALL_GAUSSIAN_TAB: Record<number, readonly number[]> = {
+  1: [1],
+  3: [0.25, 0.5, 0.25],
+  5: [0.0625, 0.25, 0.375, 0.25, 0.0625],
+  7: [0.03125, 0.109375, 0.21875, 0.28125, 0.21875, 0.109375, 0.03125],
+};
+
+/**
  * ガウシアンカーネル生成（OpenCVのgetGaussianKernel互換）。
- * sigma<=0 のときは ksize から自動計算: 0.3*((ksize-1)*0.5 - 1) + 0.8
+ * - sigma<=0 かつ ksize<=7（奇数）: 固定二項カーネルを使う
+ * - それ以外: sigma<=0 なら 0.3*((ksize-1)*0.5 - 1) + 0.8 で自動計算
  */
 export function gaussianKernel(ksize: number, sigma: number): Float64Array {
+  if (sigma <= 0) {
+    const fixed = SMALL_GAUSSIAN_TAB[ksize];
+    if (fixed) return Float64Array.from(fixed);
+  }
   const s = sigma > 0 ? sigma : 0.3 * ((ksize - 1) * 0.5 - 1) + 0.8;
   const kernel = new Float64Array(ksize);
   const center = (ksize - 1) / 2;

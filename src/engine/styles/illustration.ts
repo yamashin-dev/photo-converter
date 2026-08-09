@@ -3,7 +3,7 @@ import { DEFAULT_SEED } from "../types";
 import type { ImageBuffer } from "../image";
 import { resizeNearest } from "../image";
 import { FIXED_PALETTES } from "../palettes/fixed";
-import { extractKMeans } from "../palettes/kmeans";
+import { extractPalette, PALETTE_SEED } from "../palettes/extract";
 import { applyPaletteInPlace } from "../quantize";
 import { applySaturationInPlace } from "../filters/saturation";
 import { addDoGOutlineInPlace } from "../filters/outline";
@@ -54,9 +54,16 @@ function processLightness(
  * 前処理（旧pixel_converter.py _preprocess から移植）:
  * ガウシアン(9x9) → bilateral(9,75,75) → メディアン(5)
  * → [contrast時] CLAHE(4.0, 8x8タイル, LABのL) + equalizeHist(YUVのY)
- * → 影除去（LABのLをガンマ0.4で持ち上げて平坦化）
+ * → [removeShadow時] 影除去（LABのLをガンマ0.4で持ち上げて平坦化）
+ *
+ * 旧実装は影除去を常時適用していたが、パラメータ契約（ConversionParams.removeShadow）が
+ * トグルを約束しているため、こちらに合わせて切り替え可能にしている。
  */
-function preprocess(src: ImageBuffer, enhanceContrast: boolean): ImageBuffer {
+function preprocess(
+  src: ImageBuffer,
+  enhanceContrast: boolean,
+  removeShadow: boolean
+): ImageBuffer {
   // 情報の簡素化（デフォルメ風）
   let img = gaussianBlurImage(src, 9, 0);
   // エッジ保持平滑化（手描き風の要）
@@ -90,11 +97,13 @@ function preprocess(src: ImageBuffer, enhanceContrast: boolean): ImageBuffer {
   }
 
   // 影除去: 暗部を持ち上げて平坦に（ガンマ0.4）
-  processLightness(img, (l, n) => {
-    for (let i = 0; i < n; i++) {
-      l[i] = Math.min(255, Math.round(Math.pow(l[i] / 255, 0.4) * 255));
-    }
-  });
+  if (removeShadow) {
+    processLightness(img, (l, n) => {
+      for (let i = 0; i < n; i++) {
+        l[i] = Math.min(255, Math.round(Math.pow(l[i] / 255, 0.4) * 255));
+      }
+    });
+  }
 
   return img;
 }
@@ -124,7 +133,6 @@ export function convertIllustration(
   }
   const params = sanitizeParams(rawParams);
   const rng = createRng(params.seed ?? DEFAULT_SEED);
-  const seed = params.seed ?? DEFAULT_SEED;
 
   // 0. 端末保護: 処理解像度の上限
   const maxDim = params.maxDimension ?? ILLUSTRATION_MAX_DIMENSION;
@@ -141,7 +149,7 @@ export function convertIllustration(
 
   // 1. 前処理（ぼかし・エッジ保持平滑化・影除去）— 最も重い工程
   onProgress?.({ ratio: 0.1, stage: "preprocess" });
-  const processed = preprocess(source, params.enhanceContrast);
+  const processed = preprocess(source, params.enhanceContrast, params.removeShadow);
 
   // 2. NEAREST縮小（デフォルメ風に）
   onProgress?.({ ratio: 0.55, stage: "downscale" });
@@ -149,11 +157,12 @@ export function convertIllustration(
   const smallHeight = Math.max(1, Math.floor(processed.height / params.pixelSize));
   const small = resizeNearest(processed, smallWidth, smallHeight);
 
-  // 3. パレット決定（autoはK-means、固定は統合版パレット）
+  // 3. パレット決定（autoは抽出方式4種から選択、固定は統合版パレット）
+  // 旧drawing版は常にK-meansだったが、統合版では抽出方式を全スタイル共通で選べる
   onProgress?.({ ratio: 0.6, stage: "palette" });
   const palette: Palette =
     params.paletteType === "auto"
-      ? extractKMeans(small, params.numColors, seed)
+      ? extractPalette(small, params.numColors, params.extractMethod, PALETTE_SEED)
       : FIXED_PALETTES[params.paletteType as Exclude<PaletteType, "auto">];
 
   // 4. 量子化（ディザなし=最近傍、あり=各方式）
