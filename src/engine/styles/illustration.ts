@@ -66,14 +66,19 @@ function processLightness(
 function preprocess(
   src: ImageBuffer,
   enhanceContrast: boolean,
-  removeShadow: boolean
+  removeShadow: boolean,
+  onStep?: (ratio: number) => void
 ): ImageBuffer {
+  // 前処理が全体の大半を占めるので、この中でも進み具合を伝える
   // 情報の簡素化（デフォルメ風）
   let img = gaussianBlurImage(src, 9, 0);
+  onStep?.(0.18);
   // エッジ保持平滑化（手描き風の要）
   img = bilateralFilterImage(img, 9, 75, 75);
+  onStep?.(0.36);
   // ノイズ除去
   img = medianBlurImage(img, 5);
+  onStep?.(0.46);
 
   if (enhanceContrast) {
     // CLAHE: 細かな階調を統合して簡素化
@@ -152,8 +157,13 @@ export function convertIllustration(
   }
 
   // 1. 前処理（ぼかし・エッジ保持平滑化・影除去）— 最も重い工程
-  onProgress?.({ ratio: 0.1, stage: "preprocess" });
-  const processed = preprocess(source, params.enhanceContrast, params.removeShadow);
+  onProgress?.({ ratio: 0.06, stage: "preprocess" });
+  const processed = preprocess(
+    source,
+    params.enhanceContrast,
+    params.removeShadow,
+    (ratio) => onProgress?.({ ratio, stage: "preprocess" })
+  );
 
   // 2. NEAREST縮小（デフォルメ風に）
   onProgress?.({ ratio: 0.55, stage: "downscale" });

@@ -128,12 +128,24 @@ export function ComparisonView({
           </div>
         )}
 
-        {/* 下書きは見えているので画面は塞がず、隅で仕上げ中とだけ伝える */}
+        {/* 下書きは見えているので画面は塞がず、隅で進み具合だけ伝える */}
         {state === "refining" && (
-          <p className={styles.refining} role="status">
-            <span className={styles.refiningDot} aria-hidden="true" />
-            仕上げ中
-          </p>
+          <div className={styles.refining}>
+            <p className={styles.refiningText} role="status">
+              <span className={styles.refiningDot} aria-hidden="true" />
+              仕上げ中 {percent}%
+            </p>
+            <div
+              className={styles.refiningTrack}
+              role="progressbar"
+              aria-label="仕上げの進捗"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={percent}
+            >
+              <div className={styles.refiningBar} style={{ width: `${percent}%` }} />
+            </div>
+          </div>
         )}
 
         {/* 変換は終わっているので、失敗と誤解させない文言にする */}
